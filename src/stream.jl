@@ -68,11 +68,11 @@ function double_panel(datadir::String, extension::String=".lvm")
     fig = Figure(resolution = (2200, 1000), fontsize = 30)
     sc = display(fig)
 
-    inspector = DataInspector(fig,
-                    indicator_color = :deepskyblue, 
-                    indicator_linewidth = 1.5,
-                    text_align = (:left, :bottom)
-                    )
+    # inspector = DataInspector(fig,
+    #                 indicator_color = :deepskyblue, 
+    #                 indicator_linewidth = 1.5,
+    #                 text_align = (:left, :bottom)
+    #                 )
 
     xdata = [rand(10)]
     ydata = [rand(10)]
@@ -112,9 +112,9 @@ function double_panel(datadir::String, extension::String=".lvm")
         ax.title = plotnames[][i]
     end
 
-    iswatching = Observable(true)
+    # iswatching = Observable(true)
     while true
-        while iswatching[]
+        # while iswatching[]
             (file, event) = watch_folder(datadir)
             
             if endswith(file, extension)
@@ -134,19 +134,18 @@ function double_panel(datadir::String, extension::String=".lvm")
                 end
             end
         end
-    end
+    # end
 end
 
-function panel(datadir::String, extension::String=".lvm")
+function four_panels(datadir::String, extension::String=".lvm")
 
     fig = Figure(resolution = (2000, 2000), fontsize = 40)
     sc = display(fig)
 
-    inspector = DataInspector(fig,
-                    indicator_color = :deepskyblue, 
-                    indicator_linewidth = 3,
-                    textsize = 30,
-                    )
+    # inspector = DataInspector(fig,
+    #                 indicator_color = :deepskyblue, 
+    #                 indicator_linewidth = 3,
+    #                 )
 
     fig[1:4, 1:2] = grid = GridLayout()
     
@@ -162,11 +161,19 @@ function panel(datadir::String, extension::String=".lvm")
     xs = [Observable(xdata[1]) for i in 1:length(axs)]
     ys = [Observable(ydata[1]) for i in 1:length(axs)]
 
-    # line = lines!(axs[1], xs[1], ys[1])
+    livetext = text!(axs[1], "• Live",
+        textsize = 40,
+        color = :red,
+        space = :relative, 
+        align = (:left, :bottom))
 
     for (m, menu) in enumerate(menus)
         menu.i_selected = 1
-        lines!(axs[m], xs[m], ys[m])
+        if m == 1
+            lines!(axs[m], xs[m], ys[m], color = :firebrick4)
+        else
+            lines!(axs[m], xs[m], ys[m])
+        end
 
         on(menu.selection) do s
             
