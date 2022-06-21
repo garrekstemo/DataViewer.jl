@@ -72,7 +72,7 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
 
     while true
         (file, event) = watch_folder(datadir)
-        sleep(0.003)
+        sleep(0.01)
         
         if endswith(file, extension)
             println("New file: ", file)
