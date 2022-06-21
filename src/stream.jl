@@ -28,7 +28,7 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
         tellheight = false, width = 300, height = 50
         )
 
-    axlive = Axis(fig[1, 2])
+    axlive = Axis(fig[1, 2], xticks = LinearTicks(7), yticks = LinearTicks(5))
     livetext = text!(axlive, " • Live",
                     # textsize = 40,
                     color = :red,
@@ -43,7 +43,7 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
     col = 3
     row = 1
     on(axbutton.clicks) do b
-        ax = Axis(fig[row, col])
+        ax = Axis(fig[row, col], xticks = LinearTicks(7), yticks = LinearTicks(5))
         push!(axs, ax)
 
         newmenu = Menu(fig[row+1, col], options = plotnames, tellwidth=false)
@@ -72,6 +72,7 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
 
     while true
         (file, event) = watch_folder(datadir)
+        sleep(0.003)
         
         if endswith(file, extension)
             println("New file: ", file)
