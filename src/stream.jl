@@ -4,11 +4,11 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
     fig = Figure(resolution = (1000, 400))
     sc = display(fig)
 
-    # inspector = DataInspector(fig,
-    #     indicator_color = :deepskyblue, 
-    #     indicator_linewidth = 1.5,
-    #     text_align = (:left, :bottom)
-    #     )
+    inspector = DataInspector(fig,
+        indicator_color = :blue, 
+        indicator_linewidth = 0.5,
+        text_align = (:left, :bottom)
+        )
 
     xdata = [rand(1)]
     ydata = [rand(1)]
@@ -127,6 +127,12 @@ end
 function satellite_panel(menu_options, xs, ys)
     fig = Figure(resolution = (800, 600))
 
+    inspector = DataInspector(fig,
+                    indicator_color = :deepskyblue, 
+                    indicator_linewidth = 1.5,
+                    text_align = (:left, :bottom)
+                    )
+
     menu = Menu(fig, options = menu_options, width = 200, tellwidth = true)
     menu.i_selected = 1
 
@@ -162,8 +168,9 @@ function satellite_panel(menu_options, xs, ys)
         if !isdir(save_folder)
             mkdir(save_folder)
         end
-        save_path = save_folder * "$(to_value(menu.selection))" * "_plot.png"
+        save_path = abspath(save_folder * "$(to_value(menu.selection))" * "_plot.png")
         save(save_path, fig)
+        println("Saved figure to ", save_path)
     end
 
     on(menu.selection) do _
