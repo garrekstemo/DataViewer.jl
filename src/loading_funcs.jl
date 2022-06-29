@@ -5,16 +5,18 @@ function loadfile(dir::String, file::String, extension::String=".lvm")
         colnames = propertynames(rawdf)
         df = DataFrame()
 
-        if :Wavelength in colnames
-            df.Wavelength = rawdf.Wavelength
+        if :wavelength in colnames
+            df.wavelength = rawdf.wavelength
+        elseif :time in colnames
+            df.time = rawdf.time
         else
             df.X = range(1, length = length(rawdf[!, 1]))
         end
 
-        if :DiffSignal in colnames
-            df.DiffSignal = rawdf.DiffSignal
-        elseif :Signal in colnames
-            df.Signal = rawdf.Signal
+        if :diffsignal in colnames
+            df.diffsignal = rawdf.diffsignal
+        elseif :signal in colnames
+            df.signal = rawdf.signal
         end
 
     elseif extension == ".csv"

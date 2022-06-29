@@ -81,10 +81,10 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
     end
 
     on(lwupbutton.clicks) do _
-        lw[] = lw[] + 1
+        lw[] = lw[] + 0.5
     end
     on(lwdownbutton.clicks) do _
-        lw[] = lw[] - 1
+        lw[] = lw[] - 0.5
     end
 
     figures = []
@@ -157,10 +157,10 @@ function satellite_panel(menu_options, xs, ys)
     l = lines!(ax, newx, newy, linewidth = lw)
 
     on(lwupbutton.clicks) do _
-        lw[] = lw[] + 1
+        lw[] = lw[] + 0.5
     end
     on(lwdownbutton.clicks) do _
-        lw[] = lw[] - 1
+        lw[] = lw[] - 0.5
     end
 
     on(savebutton.clicks) do _
