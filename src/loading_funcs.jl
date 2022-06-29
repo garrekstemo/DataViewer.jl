@@ -8,7 +8,7 @@ function loadfile(dir::String, file::String, extension::String=".lvm")
         if :wavelength in colnames
             df.wavelength = rawdf.wavelength
         elseif :time in colnames
-            df.time = rawdf.time
+            df.time = rawdf.time ./ -1000
         else
             df.X = range(1, length = length(rawdf[!, 1]))
         end
