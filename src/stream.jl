@@ -1,3 +1,4 @@
+
 function dynamicpanel(datadir::String, extension::String=".lvm")
     datadir = abspath(datadir)
 
@@ -101,7 +102,7 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
         
         if endswith(file, extension)
             println("New file: ", file)
-            x, y, name = loadfile(datadir, file, extension)
+            x, y, name = loaddata(datadir, file, extension)
 
             if !(name in plotnames[])
 
@@ -232,7 +233,7 @@ function single_panel(datadir::String, extension::String=".lvm")
             
             if endswith(file, extension)
                 println("New file: ", file)
-                x, y, name = loadfile(datadir, file, extension)
+                x, y, name = loaddata(datadir, file, extension)
 
                 if !(name in plotnames[])
 

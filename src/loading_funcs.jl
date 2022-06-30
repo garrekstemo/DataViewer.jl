@@ -1,5 +1,20 @@
-function loadfile(dir::String, file::String, extension::String=".lvm")
+# struct ExperimentHeaders{V <: AbstractVector{<:Symbol}}
+#     headernames::V
+# end
 
+# const experimentheaders = Dict{Symbol, ExperimentHeaders}()
+
+# function loadheadernames(experiment, headernames)
+#     haskey(experimentheaders, experiment) && println("$experiment overwritten")
+#     experimentheaders[experiment] = DataStream.ExperimentHeaders(headernames)
+#     return experimentheaders[experiment]
+# end
+
+
+
+function loaddata(dir::String, file::String, extension::String=".lvm")
+
+    
     if extension == ".lvm"
         rawdf = DataFrame(LVM.read(dir * file))
         colnames = propertynames(rawdf)
@@ -19,7 +34,7 @@ function loadfile(dir::String, file::String, extension::String=".lvm")
             df.signal = rawdf.signal
         end
 
-    elseif extension == ".csv"
+    else
         df = DataFrame(CSV.File(dir * file))
     end
 
