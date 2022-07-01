@@ -1,31 +1,32 @@
-function loaddata(dir::String, file::String, experiment::Symbol=:MIR, extension::String=".lvm")
+function loaddata(rawdf::DataFrame, file::String)
 
-    if extension == ".lvm"
-        rawdf = DataFrame(readlvm(dir * file, experiment))
-        colnames = propertynames(rawdf)
-        df = DataFrame()
+    xlabel = ""
+    ylabel = ""
 
-        if :wavelength in colnames
-            df.wavelength = rawdf.wavelength
-        elseif :time in colnames
-            df.time = rawdf.time ./ -1000
-        else
-            df.X = range(1, length = length(rawdf[!, 1]))
-        end
+    colnames = propertynames(rawdf)
+    df = DataFrame()
 
-        if :diffsignal in colnames
-            df.diffsignal = rawdf.diffsignal
-        elseif :signal in colnames
-            df.signal = rawdf.signal
-        else
-            df.Y = rawdf[!, 1]
-        end
-
+    if :wavelength in colnames
+        df.wavelength = rawdf.wavelength
+        xlabel = "Wavelength (nm)"
+    elseif :time in colnames
+        df.time = rawdf.time ./ -1000
+        xlabel = "Time (ps)"
     else
-        df = DataFrame(CSV.File(dir * file))
+        df.X = range(1, length = length(rawdf[!, 1]))
     end
 
-    filename = chop(file, tail = length(extension))
+    if :diffsignal in colnames
+        df.diffsignal = rawdf.diffsignal
+        ylabel = "ΔA (arb.)"
+    elseif :signal in colnames
+        df.signal = rawdf.signal
+        ylabel = "Signal (arb.)"
+    else
+        df.Y = rawdf[!, 1]
+    end
 
-    return df[!, 1], df[!, 2], filename
+    filename = chop(file, tail = 4)
+    println(xlabel, " ", ylabel)
+    return df[!, 1], df[!, 2], filename, xlabel, ylabel
 end

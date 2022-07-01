@@ -17,6 +17,9 @@ function dynamicpanel(datadir::String, experiment::Symbol=:MIR, extension::Strin
     yslive = Observable(ydata[1])
     xs = [Observable(xdata[1])]
     ys = [Observable(ydata[1])]
+
+    xlabels = Observable([""])
+    ylabels = Observable([""])
     plotnames = Observable(["no options"])
 
     lw = Observable(1.0)
@@ -65,6 +68,8 @@ function dynamicpanel(datadir::String, experiment::Symbol=:MIR, extension::Strin
             newx.val = xdata[i]
             newy[] = ydata[i]
             ax.title = plotnames[][i]
+            ax.xlabel = xlabels[][i]
+            ax.ylabel = ylabels[][i]
             autolimits!(ax)
         end
 
@@ -83,7 +88,7 @@ function dynamicpanel(datadir::String, experiment::Symbol=:MIR, extension::Strin
     end
 
     on(figbutton.clicks) do _
-        newfig = satellite_panel(plotnames, xdata, ydata)
+        newfig = satellite_panel(plotnames, xlabels, ylabels, xdata, ydata)
         display(GLMakie.Screen(), newfig)
     end
 
@@ -98,9 +103,22 @@ function dynamicpanel(datadir::String, experiment::Symbol=:MIR, extension::Strin
                 file = file[2:end]
             end
             println("New file: ", file)
-            x, y, name = loaddata(datadir, file, experiment, extension)
 
-            if !(name in plotnames[])
+            if extension == ".lvm"
+                rawdf = DataFrame(readlvm(datadir * file, experiment))
+            else
+                rawdf = DataFrame(CSV.File(datadir * file))
+            end
+
+            if size(rawdf) == (0, 0)
+                println("I read that file before it could finish writing. Trying again...")
+                sleep(1)
+                rawdf = DataFrame(readlvm(datadir * file, experiment))
+            end
+
+            x, y, ptitle, xlabel, ylabel = loaddata(rawdf, file)
+
+            if !(ptitle in plotnames[])
 
                 xslive.val = x
                 yslive[] = y
@@ -110,11 +128,15 @@ function dynamicpanel(datadir::String, experiment::Symbol=:MIR, extension::Strin
                 end
 
                 autolimits!(axlive)
-                axlive.title = name
+                axlive.title = ptitle
+                axlive.xlabel = xlabel
+                axlive.ylabel = ylabel
 
                 push!(xdata, x)
                 push!(ydata, y)
-                plotnames[] = push!(plotnames[], name)
+                push!(xlabels[], xlabel)
+                push!(ylabels[], ylabel)
+                plotnames[] = push!(plotnames[], ptitle)
             end
         end
     end
@@ -122,8 +144,8 @@ function dynamicpanel(datadir::String, experiment::Symbol=:MIR, extension::Strin
 end
 
 
-function satellite_panel(menu_options, xs, ys)
-    fig = Figure(resolution = (800, 600))
+function satellite_panel(menu_options, xlabels, ylabels, xs, ys)
+    fig = Figure(resolution = (900, 600))
 
     inspector = DataInspector(fig,
                     indicator_color = :deepskyblue, 
@@ -131,7 +153,7 @@ function satellite_panel(menu_options, xs, ys)
                     text_align = (:left, :bottom)
                     )
 
-    menu = Menu(fig, options = menu_options, width = 200, tellwidth = true)
+    menu = Menu(fig, options = menu_options, width = 175, tellwidth = true)
     menu.i_selected = 1
 
     savebutton = Button(fig, label = "Save Figure")
@@ -142,7 +164,7 @@ function satellite_panel(menu_options, xs, ys)
         menu,
         savebutton,
         Label(fig, "Linewidth", justification = :center);
-        tellheight = false, width = 200
+        tellheight = false, width = 190
         )
     fig[1, 1][4, 1] = lwbuttongrid = GridLayout(tellwidth = false)
     
@@ -181,6 +203,8 @@ function satellite_panel(menu_options, xs, ys)
         newx.val = xs[i]
         newy[] = ys[i]
         ax.title = menu_options[][i]
+        ax.xlabel = xlabels[][i]
+        ax.ylabel = ylabels[][i]
         autolimits!(ax)
     end
 
