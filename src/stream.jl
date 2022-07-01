@@ -1,4 +1,3 @@
-
 function dynamicpanel(datadir::String, extension::String=".lvm")
     datadir = abspath(datadir)
 
@@ -13,30 +12,26 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
 
     xdata = [rand(1)]
     ydata = [rand(1)]
-    # xs = Observable(xdata[1])
-    # ys = Observable(ydata[1])
+
     xslive = Observable(xdata[1])
     yslive = Observable(ydata[1])
-
     xs = [Observable(xdata[1])]
     ys = [Observable(ydata[1])]
     plotnames = Observable(["no options"])
 
+    lw = Observable(1.0)
+
     axbutton = Button(fig, label = "Add Axis")
     figbutton = Button(fig, label = "New Figure")
-    # delete_menuitem_button = Button(fig, label = "Delete Item")
-
-    lw = Observable(1.0)
     
     fig[1, 1] = vgrid!(
         axbutton,
         figbutton,
-        # delete_menuitem_button,
         Label(fig, "Linewidth", justification = :center);
         tellheight = false, width = 100
         )
-    fig[1, 1][4, 1] = lwbuttongrid = GridLayout(tellwidth = false)
 
+    fig[1, 1][4, 1] = lwbuttongrid = GridLayout(tellwidth = false)
     lwupbutton = Button(lwbuttongrid[1, 1], label = "⬆")
     lwdownbutton = Button(lwbuttongrid[1, 2], label = "⬇")
     
@@ -48,15 +43,14 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
                     align = (:left, :bottom)
                     )
 
-    axs = []
-    plots = []
-    menus = []
+    # Button Actions
+    # -------------- #
 
+    menus = []
     col = 2
     row = 1
     on(axbutton.clicks) do _
         ax = Axis(fig[1, 2][row, col], xticks = LinearTicks(7), yticks = LinearTicks(5), tellheight = false)
-        push!(axs, ax)
 
         newmenu = Menu(fig[1, 2][row+1, col], options = plotnames, tellwidth=false)
         newmenu.i_selected = 1
@@ -64,7 +58,6 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
 
         newx, newy = Observable(xdata[1]), Observable(ydata[1])
         l = lines!(ax, newx, newy, linewidth = lw)
-        push!(plots, l)
 
         on(newmenu.selection) do _
             i = to_value(newmenu.i_selected)
@@ -82,18 +75,6 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
         end
     end
 
-    # on(delete_menuitem_button.clicks) do _
-    #     for menu in menus
-    #         if menu.i_selected == lastindex(to_value(plotnames))
-    #             menu.i_selected -= 1
-    #         end
-    #     end
-    #     pop!(to_value(plotnames))
-    #     pop!(xdata)
-    #     pop!(ydata)
-    #     plotnames[] = to_value(plotnames)
-    # end
-
     on(lwupbutton.clicks) do _
         lw[] = lw[] + 0.5
     end
@@ -101,13 +82,13 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
         lw[] = lw[] - 0.5
     end
 
-    figures = []
     on(figbutton.clicks) do _
         newfig = satellite_panel(plotnames, xdata, ydata)
         display(GLMakie.Screen(), newfig)
-        push!(figures, newfig)
     end
 
+    # Watch for new data
+    # ------------------
 
     while true
         (file, event) = watch_folder(datadir)
