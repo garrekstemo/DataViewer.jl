@@ -13,8 +13,8 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
 
     xdata = [rand(1)]
     ydata = [rand(1)]
-    xs = Observable(xdata[1])
-    ys = Observable(ydata[1])
+    # xs = Observable(xdata[1])
+    # ys = Observable(ydata[1])
     xslive = Observable(xdata[1])
     yslive = Observable(ydata[1])
 
@@ -24,17 +24,18 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
 
     axbutton = Button(fig, label = "Add Axis")
     figbutton = Button(fig, label = "New Figure")
-    
-    lw = Observable(1)
+    # delete_menuitem_button = Button(fig, label = "Delete Item")
+
+    lw = Observable(1.0)
     
     fig[1, 1] = vgrid!(
         axbutton,
         figbutton,
+        # delete_menuitem_button,
         Label(fig, "Linewidth", justification = :center);
         tellheight = false, width = 100
         )
     fig[1, 1][4, 1] = lwbuttongrid = GridLayout(tellwidth = false)
-    
 
     lwupbutton = Button(lwbuttongrid[1, 1], label = "⬆")
     lwdownbutton = Button(lwbuttongrid[1, 2], label = "⬇")
@@ -81,6 +82,18 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
         end
     end
 
+    # on(delete_menuitem_button.clicks) do _
+    #     for menu in menus
+    #         if menu.i_selected == lastindex(to_value(plotnames))
+    #             menu.i_selected -= 1
+    #         end
+    #     end
+    #     pop!(to_value(plotnames))
+    #     pop!(xdata)
+    #     pop!(ydata)
+    #     plotnames[] = to_value(plotnames)
+    # end
+
     on(lwupbutton.clicks) do _
         lw[] = lw[] + 0.5
     end
@@ -124,6 +137,7 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
     end
 
 end
+
 
 function satellite_panel(menu_options, xs, ys)
     fig = Figure(resolution = (800, 600))
@@ -169,8 +183,12 @@ function satellite_panel(menu_options, xs, ys)
         if !isdir(save_folder)
             mkdir(save_folder)
         end
-        save_path = abspath(save_folder * "$(to_value(menu.selection))" * "_plot.png")
-        save(save_path, fig)
+        plotname = "$(to_value(menu.selection))"
+
+        save_path = abspath(save_folder * plotname * "_plot.png")
+        savefig = make_savefig(newx, newy, plotname)
+
+        save(save_path, savefig)
         println("Saved figure to ", save_path)
     end
 
@@ -184,6 +202,13 @@ function satellite_panel(menu_options, xs, ys)
     end
 
     fig
+end
+
+function make_savefig(x, y, title)
+    fig = Figure()
+    ax = Axis(fig[1, 1], title = title, xticks = LinearTicks(10))
+    lines!(x, y)
+    return fig
 end
 
 

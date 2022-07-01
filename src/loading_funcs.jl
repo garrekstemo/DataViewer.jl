@@ -1,20 +1,5 @@
-# struct ExperimentHeaders{V <: AbstractVector{<:Symbol}}
-#     headernames::V
-# end
-
-# const experimentheaders = Dict{Symbol, ExperimentHeaders}()
-
-# function loadheadernames(experiment, headernames)
-#     haskey(experimentheaders, experiment) && println("$experiment overwritten")
-#     experimentheaders[experiment] = DataStream.ExperimentHeaders(headernames)
-#     return experimentheaders[experiment]
-# end
-
-
-
 function loaddata(dir::String, file::String, extension::String=".lvm")
 
-    
     if extension == ".lvm"
         rawdf = DataFrame(LVM.read(dir * file))
         colnames = propertynames(rawdf)
