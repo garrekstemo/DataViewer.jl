@@ -1,4 +1,4 @@
-function dynamicpanel(datadir::String, extension::String=".lvm")
+function dynamicpanel(datadir::String, experiment::Symbol=:MIR, extension::String=".lvm")
     datadir = abspath(datadir)
 
     fig = Figure(resolution = (1000, 400))
@@ -92,11 +92,13 @@ function dynamicpanel(datadir::String, extension::String=".lvm")
 
     while true
         (file, event) = watch_folder(datadir)
-        sleep(0.01)
         
         if endswith(file, extension)
+            if findfirst('\\', file) == 1
+                file = file[2:end]
+            end
             println("New file: ", file)
-            x, y, name = loaddata(datadir, file, extension)
+            x, y, name = loaddata(datadir, file, experiment, extension)
 
             if !(name in plotnames[])
 
@@ -134,7 +136,7 @@ function satellite_panel(menu_options, xs, ys)
 
     savebutton = Button(fig, label = "Save Figure")
 
-    lw = Observable(1)
+    lw = Observable(1.0)
     
     fig[1, 1] = vgrid!(
         menu,

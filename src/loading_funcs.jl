@@ -1,7 +1,7 @@
-function loaddata(dir::String, file::String, extension::String=".lvm")
+function loaddata(dir::String, file::String, experiment::Symbol=:MIR, extension::String=".lvm")
 
     if extension == ".lvm"
-        rawdf = DataFrame(LVM.read(dir * file))
+        rawdf = DataFrame(readlvm(dir * file, experiment))
         colnames = propertynames(rawdf)
         df = DataFrame()
 
@@ -17,6 +17,8 @@ function loaddata(dir::String, file::String, extension::String=".lvm")
             df.diffsignal = rawdf.diffsignal
         elseif :signal in colnames
             df.signal = rawdf.signal
+        else
+            df.Y = rawdf[!, 1]
         end
 
     else
