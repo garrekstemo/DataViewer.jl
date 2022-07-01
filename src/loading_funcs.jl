@@ -27,6 +27,5 @@ function loaddata(rawdf::DataFrame, file::String)
     end
 
     filename = chop(file, tail = 4)
-    println(xlabel, " ", ylabel)
     return df[!, 1], df[!, 2], filename, xlabel, ylabel
 end
