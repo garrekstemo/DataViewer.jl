@@ -10,46 +10,33 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
         text_align = (:left, :bottom)
         )
 
-    xdata = [rand(1)]
-    ydata = [rand(1)]
-
-    xslive = Observable(xdata[1])
-    yslive = Observable(ydata[1])
-    xs = [Observable(xdata[1])]
-    ys = [Observable(ydata[1])]
-
-    xlabels = Observable([""])
-    ylabels = Observable([""])
+    xdata, ydata = [rand(1)], [rand(1)]
+    xslive, yslive = Observable(xdata[1]), Observable(ydata[1])
+    
+    xlabels, ylabels = Observable([""]), Observable([""])
     plotnames = Observable(["no options"])
+    
+    dfs = []
 
-    lw = Observable(1.0)
+    lw = 1.0
 
     axbutton = Button(fig, label = "Add Axis")
     figbutton = Button(fig, label = "New Figure")
     
     fig[1, 1] = vgrid!(
         axbutton,
-        figbutton,
-        Label(fig, "Linewidth", justification = :center);
+        figbutton;
         tellheight = false, width = 190
         )
-
-    fig[1, 1][4, 1] = lwbuttongrid = GridLayout(tellwidth = false)
-    lwupbutton = Button(lwbuttongrid[1, 1], label = "⬆")
-    lwdownbutton = Button(lwbuttongrid[1, 2], label = "⬇")
     
     axlive = Axis(fig[1, 2][1, 1], xticks = LinearTicks(7), yticks = LinearTicks(5))
-    livetext = text!(axlive, " • Live",
-                    # textsize = 40,
-                    color = :red,
-                    space = :relative, 
-                    align = (:left, :bottom)
-                    )
+    livetext = text!(axlive, " • Live", color = :red, space = :relative, align = (:left, :bottom))
 
     # Button Actions
     # -------------- #
 
     menus = []
+
     col = 2
     row = 1
     on(axbutton.clicks) do _
@@ -74,21 +61,14 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
         end
 
         col += 1
-        if col == 4
+        if col == 3
             row += 2
             col = 1
         end
     end
 
-    on(lwupbutton.clicks) do _
-        lw[] = lw[] + 0.5
-    end
-    on(lwdownbutton.clicks) do _
-        lw[] = lw[] - 0.5
-    end
-
     on(figbutton.clicks) do _
-        newfig = satellite_panel(plotnames, xlabels, ylabels, xdata, ydata)
+        newfig = satellite_panel(plotnames, xlabels, ylabels, xdata, ydata, dfs)
         display(GLMakie.Screen(), newfig)
     end
 
@@ -99,6 +79,7 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
         (file, event) = watch_folder(datadir)
         
         if endswith(file, ext)
+
             if findfirst('\\', file) == 1
                 file = file[2:end]
             end
@@ -112,6 +93,7 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
                     sleep(1)
                     rawdf = DataFrame(readlvm(datadir * file, proj))
                 end
+                push!(dfs, rawdf)
 
             else
                 rawdf = DataFrame(CSV.File(datadir * file))
@@ -150,8 +132,9 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
 end
 
 
-function satellite_panel(menu_options, xlabels, ylabels, xs, ys)
-    fig = Figure(resolution = (800, 600))
+function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs)
+
+    fig = Figure(resolution = (800, 500))
 
     inspector = DataInspector(fig,
                     indicator_color = :deepskyblue, 
@@ -162,33 +145,32 @@ function satellite_panel(menu_options, xlabels, ylabels, xs, ys)
     menu = Menu(fig, options = menu_options, width = 200, tellwidth = true)
     menu.i_selected = 1
 
-    savebutton = Button(fig, label = "Save Figure")
+    toggle1 = Button(fig, label = "CH0 ON")
+    toggle2 = Button(fig, label = "CH0 OFF")
 
-    lw = Observable(1.0)
+    vis1 = Observable(true)
+    vis2 = Observable(false)
+
+    savebutton = Button(fig, label = "Save Figure")
     
     fig[1, 1] = vgrid!(
         menu,
-        savebutton,
-        Label(fig, "Linewidth", justification = :center);
+        toggle1,
+        toggle2,
+        savebutton;
         tellheight = false, width = 190
         # tellheight = false, width = 250
         )
-    fig[1, 1][4, 1] = lwbuttongrid = GridLayout(tellwidth = false)
-    
-    lwupbutton = Button(lwbuttongrid[1, 1], label = "⬆")
-    lwdownbutton = Button(lwbuttongrid[1, 2], label = "⬇")
 
+    lw = 1.0
 
     ax = Axis(fig[1, 2], xticks = LinearTicks(7), yticks = LinearTicks(5))
+    
     newx, newy = Observable(xs[1]), Observable(ys[1])
-    l = lines!(ax, newx, newy, linewidth = lw)
+    df = Observable(dfs[1])
 
-    on(lwupbutton.clicks) do _
-        lw[] = lw[] + 0.5
-    end
-    on(lwdownbutton.clicks) do _
-        lw[] = lw[] - 0.5
-    end
+    l1 = lines!(ax, newx, newy, linewidth = lw)
+
 
     on(savebutton.clicks) do _
         save_folder = "./plots/"
@@ -204,11 +186,31 @@ function satellite_panel(menu_options, xlabels, ylabels, xs, ys)
         println("Saved figure to ", save_path)
     end
 
+    on(toggle1.clicks) do _
+        vis1[] = !(vis1.val)
+    end
+    on(toggle2.clicks) do _
+        vis2[] = !(vis2.val)
+    end
+
     on(menu.selection) do _
         i = to_value(menu.i_selected)
 
+        
         newx.val = xs[i]
         newy[] = ys[i]
+        df[] = dfs[i-1]
+        if :ΔA in propertynames(df.val)
+
+            ax2 = Axis(fig[1, 2], ylabel = "CH0 ON/OFF", yaxisposition = :right)
+    
+            l2 = lines!(ax2, newx.val, df[].on, linewidth = lw, color = :orange, visible = vis1)
+            l3 = lines!(ax2, newx.val, df[].off, linewidth = lw, color = :orangered, visible = vis2)
+
+            hidespines!(ax2)
+            hidexdecorations!(ax2)
+            hideydecorations!(ax2, ticks = false, ticklabels = false, label = false)
+        end
         ax.title = menu_options[][i]
         ax.xlabel = xlabels[][i]
         ax.ylabel = ylabels[][i]
@@ -221,6 +223,6 @@ end
 function make_savefig(x, y, title)
     fig = Figure()
     ax = Axis(fig[1, 1], title = title, xticks = LinearTicks(10))
-    lines!(x, y)
+    lines!(ax, x, y)
     return fig
 end

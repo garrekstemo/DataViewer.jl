@@ -1,4 +1,4 @@
-function loaddata(rawdf::DataFrame, file::String)
+function loaddata(rawdf::DataFrame, file::String; test = false)
 
     xlabel = ""
     ylabel = ""
@@ -7,6 +7,10 @@ function loaddata(rawdf::DataFrame, file::String)
 
     colnames = propertynames(rawdf)
     df = DataFrame()
+
+    if test == true
+        return rawdf[!, 1], rawdf[!, 2], String(colnames[1]), String(colnames[2]), filename
+    end
 
     if :wavelength in colnames
         xdata = rawdf.wavelength
@@ -22,8 +26,12 @@ function loaddata(rawdf::DataFrame, file::String)
         ydata = rawdf.signal
         ylabel = "Signal (arb.)"
     else
-        ydata = rawdf[!, 1]
-        ylabel = String(propertynames(rawdf)[1])
+        for name in propertynames(rawdf)
+            if occursin("CH0_", String(name))
+                ydata = rawdf[!, name]
+                ylabel = String(name)
+            end
+        end
     end
     if :ΔA in colnames
         ydata = rawdf.ΔA
@@ -31,12 +39,13 @@ function loaddata(rawdf::DataFrame, file::String)
     end
 
     filename = chop(file, tail = 4)
+    
     return xdata, ydata, xlabel, ylabel, filename
 end
 
-function loaddata(rawdf::DataFrame, file::String; proj::Symbol = :test)
+# function loaddata(rawdf::DataFrame, file::String; proj::Symbol = :test)
 
-    colnames = propertynames(rawdf)
-    filename = chop(file, tail = 4)
-    return rawdf[!, 1], rawdf[!, 2], String(colnames[1]), String(colnames[2]), filename
-end
+#     colnames = propertynames(rawdf)
+#     filename = chop(file, tail = 4)
+#     return rawdf[!, 1], rawdf[!, 2], String(colnames[1]), String(colnames[2]), filename
+# end
