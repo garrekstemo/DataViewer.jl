@@ -2,30 +2,41 @@ function loaddata(rawdf::DataFrame, file::String)
 
     xlabel = ""
     ylabel = ""
+    xdata = []
+    ydata = []
 
     colnames = propertynames(rawdf)
     df = DataFrame()
 
     if :wavelength in colnames
-        df.wavelength = rawdf.wavelength
+        xdata = rawdf.wavelength
         xlabel = "Wavelength (nm)"
     elseif :time in colnames
-        df.time = rawdf.time ./ -1000
+        xdata = rawdf.time ./ -1000
         xlabel = "Time (ps)"
     else
-        df.X = range(1, length = length(rawdf[!, 1]))
+        xdata = range(1, length = length(rawdf[!, 1]))
     end
 
-    if :diffsignal in colnames
-        df.diffsignal = rawdf.diffsignal
-        ylabel = "ΔA (arb.)"
-    elseif :signal in colnames
-        df.signal = rawdf.signal
+    if :signal in colnames
+        ydata = rawdf.signal
         ylabel = "Signal (arb.)"
     else
-        df.Y = rawdf[!, 1]
+        ydata = rawdf[!, 1]
+        ylabel = String(propertynames(rawdf)[1])
+    end
+    if :ΔA in colnames
+        ydata = rawdf.ΔA
+        ylabel = "ΔA (arb.)"
     end
 
     filename = chop(file, tail = 4)
-    return df[!, 1], df[!, 2], filename, xlabel, ylabel
+    return xdata, ydata, xlabel, ylabel, filename
+end
+
+function loaddata(rawdf::DataFrame, file::String; proj::Symbol = :test)
+
+    colnames = propertynames(rawdf)
+    filename = chop(file, tail = 4)
+    return rawdf[!, 1], rawdf[!, 2], String(colnames[1]), String(colnames[2]), filename
 end

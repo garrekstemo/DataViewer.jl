@@ -1,7 +1,7 @@
-function dynamicpanel(datadir::String, experiment::Symbol=:MIR, extension::String=".lvm")
+function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
     datadir = abspath(datadir)
 
-    fig = Figure(resolution = (1000, 400))
+    fig = Figure(resolution = (800, 500))
     sc = display(fig)
 
     inspector = DataInspector(fig,
@@ -31,7 +31,7 @@ function dynamicpanel(datadir::String, experiment::Symbol=:MIR, extension::Strin
         axbutton,
         figbutton,
         Label(fig, "Linewidth", justification = :center);
-        tellheight = false, width = 100
+        tellheight = false, width = 190
         )
 
     fig[1, 1][4, 1] = lwbuttongrid = GridLayout(tellwidth = false)
@@ -98,25 +98,31 @@ function dynamicpanel(datadir::String, experiment::Symbol=:MIR, extension::Strin
     while true
         (file, event) = watch_folder(datadir)
         
-        if endswith(file, extension)
+        if endswith(file, ext)
             if findfirst('\\', file) == 1
                 file = file[2:end]
             end
             println("New file: ", file)
 
-            if extension == ".lvm"
-                rawdf = DataFrame(readlvm(datadir * file, experiment))
+            if ext == ".lvm"
+                rawdf = DataFrame(readlvm(datadir * file, proj))
+
+                if size(rawdf) == (0, 0)
+                    println("I read that file before it could finish writing. Trying again...")
+                    sleep(1)
+                    rawdf = DataFrame(readlvm(datadir * file, proj))
+                end
+
             else
                 rawdf = DataFrame(CSV.File(datadir * file))
             end
 
-            if size(rawdf) == (0, 0)
-                println("I read that file before it could finish writing. Trying again...")
-                sleep(1)
-                rawdf = DataFrame(readlvm(datadir * file, experiment))
-            end
 
-            x, y, ptitle, xlabel, ylabel = loaddata(rawdf, file)
+            if proj == :test
+                x, y, xlabel, ylabel, ptitle = loaddata(rawdf, file, proj = :test)
+            else
+                x, y, xlabel, ylabel, ptitle = loaddata(rawdf, file)
+            end
 
             if !(ptitle in plotnames[])
 
@@ -145,7 +151,7 @@ end
 
 
 function satellite_panel(menu_options, xlabels, ylabels, xs, ys)
-    fig = Figure(resolution = (900, 600))
+    fig = Figure(resolution = (800, 600))
 
     inspector = DataInspector(fig,
                     indicator_color = :deepskyblue, 
@@ -153,7 +159,7 @@ function satellite_panel(menu_options, xlabels, ylabels, xs, ys)
                     text_align = (:left, :bottom)
                     )
 
-    menu = Menu(fig, options = menu_options, width = 175, tellwidth = true)
+    menu = Menu(fig, options = menu_options, width = 200, tellwidth = true)
     menu.i_selected = 1
 
     savebutton = Button(fig, label = "Save Figure")
@@ -165,6 +171,7 @@ function satellite_panel(menu_options, xlabels, ylabels, xs, ys)
         savebutton,
         Label(fig, "Linewidth", justification = :center);
         tellheight = false, width = 190
+        # tellheight = false, width = 250
         )
     fig[1, 1][4, 1] = lwbuttongrid = GridLayout(tellwidth = false)
     
