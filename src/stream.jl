@@ -18,18 +18,17 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
     
     dfs = []
 
-    lw = 1.0
-
     axbutton = Button(fig, label = "Add Axis")
     figbutton = Button(fig, label = "New Figure")
     
     fig[1, 1] = vgrid!(
         axbutton,
         figbutton;
-        tellheight = false, width = 190
+        tellheight = false, width = 150
         )
     
     axlive = Axis(fig[1, 2][1, 1], xticks = LinearTicks(7), yticks = LinearTicks(5))
+    line = lines!(axlive, xslive, yslive, color = :firebrick4, linewidth = 1.0)
     livetext = text!(axlive, " • Live", color = :red, space = :relative, align = (:left, :bottom))
 
     # Button Actions
@@ -47,7 +46,7 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
         push!(menus, newmenu)
 
         newx, newy = Observable(xdata[1]), Observable(ydata[1])
-        l = lines!(ax, newx, newy, linewidth = lw)
+        l = lines!(ax, newx, newy, linewidth = 0.7)
 
         on(newmenu.selection) do _
             i = to_value(newmenu.i_selected)
@@ -93,7 +92,7 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
                     sleep(1)
                     rawdf = DataFrame(readlvm(datadir * file, proj))
                 end
-                push!(dfs, rawdf)
+                pushfirst!(dfs, rawdf)
 
             else
                 rawdf = DataFrame(CSV.File(datadir * file))
@@ -101,7 +100,7 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
 
 
             if proj == :test
-                x, y, xlabel, ylabel, ptitle = loaddata(rawdf, file, proj = :test)
+                x, y, xlabel, ylabel, ptitle = loaddata(rawdf, file; proj = :test)
             else
                 x, y, xlabel, ylabel, ptitle = loaddata(rawdf, file)
             end
@@ -111,20 +110,16 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
                 xslive.val = x
                 yslive[] = y
 
-                if plotnames[][1] == "no options"
-                    line = lines!(axlive, xslive, yslive, color = :firebrick4, linewidth = lw)
-                end
-
                 autolimits!(axlive)
                 axlive.title = ptitle
                 axlive.xlabel = xlabel
                 axlive.ylabel = ylabel
 
-                push!(xdata, x)
-                push!(ydata, y)
-                push!(xlabels[], xlabel)
-                push!(ylabels[], ylabel)
-                plotnames[] = push!(plotnames[], ptitle)
+                pushfirst!(xdata, x)
+                pushfirst!(ydata, y)
+                pushfirst!(xlabels[], xlabel)
+                pushfirst!(ylabels[], ylabel)
+                plotnames[] = pushfirst!(plotnames[], ptitle)
             end
         end
     end
@@ -142,7 +137,8 @@ function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs)
                     text_align = (:left, :bottom)
                     )
 
-    menu = Menu(fig, options = menu_options, width = 200, tellwidth = true)
+                    
+    menu = Menu(fig, options = menu_options, width = 180, tellwidth = true)
     menu.i_selected = 1
 
     toggle1 = Button(fig, label = "CH0 ON")
@@ -158,19 +154,35 @@ function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs)
         toggle1,
         toggle2,
         savebutton;
-        tellheight = false, width = 190
-        # tellheight = false, width = 250
+        tellheight = false
         )
 
-    lw = 1.0
+    lw = 0.7
 
     ax = Axis(fig[1, 2], xticks = LinearTicks(7), yticks = LinearTicks(5))
     
     newx, newy = Observable(xs[1]), Observable(ys[1])
     df = Observable(dfs[1])
+    # pump_on = Observable(rand(1))
+    # pump_off = Observable(rand(1))
 
-    l1 = lines!(ax, newx, newy, linewidth = lw)
+    l1 = lines!(ax, newx, newy, linewidth = 1.0, color = :dodgerblue3)
 
+    # if :ΔA in propertynames(df.val)
+
+    #     pump_on[] = df[].on
+    #     pump_off = df[].off
+
+    #     ax2 = Axis(fig[1, 2], ylabel = "CH0 ON/OFF", yaxisposition = :right, yticks = LinearTicks(5))
+
+    #     l2 = lines!(ax2, newx.val, pump_on.val, linewidth = lw, color = :orangered, visible = vis1)
+    #     l3 = lines!(ax2, newx.val, pump_off.val, linewidth = lw, color = :indigo, visible = vis2)
+    #     autolimits!(ax2)
+
+    #     hidespines!(ax2)
+    #     hidexdecorations!(ax2)
+    #     hideydecorations!(ax2, ticks = false, ticklabels = false, label = false)
+    # end
 
     on(savebutton.clicks) do _
         save_folder = "./plots/"
@@ -199,18 +211,12 @@ function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs)
         
         newx.val = xs[i]
         newy[] = ys[i]
-        df[] = dfs[i-1]
-        if :ΔA in propertynames(df.val)
+        df[] = dfs[i]
+        # if :ΔA in propertynames(df.val)
+        #     pump_on[] = df[].on
+        #     pump_off[] = df[].off
+        # end
 
-            ax2 = Axis(fig[1, 2], ylabel = "CH0 ON/OFF", yaxisposition = :right)
-    
-            l2 = lines!(ax2, newx.val, df[].on, linewidth = lw, color = :orange, visible = vis1)
-            l3 = lines!(ax2, newx.val, df[].off, linewidth = lw, color = :orangered, visible = vis2)
-
-            hidespines!(ax2)
-            hidexdecorations!(ax2)
-            hideydecorations!(ax2, ticks = false, ticklabels = false, label = false)
-        end
         ax.title = menu_options[][i]
         ax.xlabel = xlabels[][i]
         ax.ylabel = ylabels[][i]
