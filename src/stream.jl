@@ -5,8 +5,7 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
     sc = display(fig)
 
     inspector = DataInspector(fig,
-        indicator_color = :blue, 
-        indicator_linewidth = 0.5,
+        indicator_color = :deepskyblue2,
         text_align = (:left, :bottom)
         )
 
