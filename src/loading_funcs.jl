@@ -16,8 +16,8 @@ function loaddata(rawdf::DataFrame, file::String; test = false)
         xdata = rawdf.wavelength
         xlabel = "Wavelength (nm)"
     elseif :time in colnames
-        xdata = rawdf.time ./ -1000
-        xlabel = "Time (ps)"
+        xdata = rawdf.time
+        xlabel = "Time (fs)"
     else
         xdata = range(1, length = length(rawdf[!, 1]))
     end
