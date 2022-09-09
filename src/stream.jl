@@ -17,13 +17,11 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
     
     dfs = []
 
-    axbutton = Button(fig, label = "Add Axis")
     figbutton = Button(fig, label = "New Figure")
     
     fig[1, 1] = vgrid!(
-        axbutton,
         figbutton;
-        tellheight = false, width = 150
+        tellheight = false, width = 130
         )
     
     axlive = Axis(fig[1, 2][1, 1], xticks = LinearTicks(7), yticks = LinearTicks(5))
@@ -31,39 +29,6 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
     livetext = text!(axlive, " • Live", color = :red, space = :relative, align = (:left, :bottom))
 
     # Button Actions
-    # -------------- #
-
-    menus = []
-
-    col = 2
-    row = 1
-    on(axbutton.clicks) do _
-        ax = Axis(fig[1, 2][row, col], xticks = LinearTicks(7), yticks = LinearTicks(5), tellheight = false)
-
-        newmenu = Menu(fig[1, 2][row+1, col], options = plotnames, tellwidth=false)
-        newmenu.i_selected = 1
-        push!(menus, newmenu)
-
-        newx, newy = Observable(xdata[1]), Observable(ydata[1])
-        l = lines!(ax, newx, newy, linewidth = 0.7)
-
-        on(newmenu.selection) do _
-            i = to_value(newmenu.i_selected)
-
-            newx.val = xdata[i]
-            newy[] = ydata[i]
-            ax.title = plotnames[][i]
-            ax.xlabel = xlabels[][i]
-            ax.ylabel = ylabels[][i]
-            autolimits!(ax)
-        end
-
-        col += 1
-        if col == 3
-            row += 2
-            col = 1
-        end
-    end
 
     on(figbutton.clicks) do _
         newfig = satellite_panel(plotnames, xlabels, ylabels, xdata, ydata, dfs)
@@ -71,10 +36,10 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
     end
 
     # Watch for new data
-    # ------------------
 
     while true
         (file, event) = watch_folder(datadir)
+        sleep(1)
         
         if endswith(file, ext)
 
