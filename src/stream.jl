@@ -1,8 +1,6 @@
-function dynamicpanel(datadir::String; 
-                        proj::Symbol=:MIR, 
-                        ext::String=".lvm", 
+function dynamicpanel(datadir::String, loadfunc::Function;
                         resolution = (800, 500), 
-                        indicator = :deepskyblue2, 
+                        indicator = :deepskyblue2,
                         waittime::Int = 2,
                         )
     datadir = abspath(datadir)
@@ -37,7 +35,7 @@ function dynamicpanel(datadir::String;
     # Button Actions
 
     on(figbutton.clicks) do _
-        newfig = satellite_panel(plotnames, xlabels, ylabels, xdata, ydata, dfs)
+        newfig = satellite_panel(plotnames, xlabels, ylabels, xdata, ydata, dfs, indicator=indicator)
         display(GLMakie.Screen(), newfig)
     end
 
@@ -97,7 +95,7 @@ function dynamicpanel(datadir::String;
 end
 
 
-function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs)
+function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs; indicator = :deepskyblue2)
 
     fig = Figure(resolution = (800, 500))
 
