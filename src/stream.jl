@@ -1,11 +1,17 @@
-function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
+function dynamicpanel(datadir::String; 
+                        proj::Symbol=:MIR, 
+                        ext::String=".lvm", 
+                        resolution = (800, 500), 
+                        indicator = :deepskyblue2, 
+                        waittime::Int = 2,
+                        )
     datadir = abspath(datadir)
 
-    fig = Figure(resolution = (800, 500))
+    fig = Figure(resolution = resolution)
     sc = display(fig)
 
     inspector = DataInspector(fig,
-        indicator_color = :deepskyblue2,
+        indicator_color = indicator,
         text_align = (:left, :bottom)
         )
 
@@ -35,11 +41,11 @@ function dynamicpanel(datadir::String; proj::Symbol=:MIR, ext::String=".lvm")
         display(GLMakie.Screen(), newfig)
     end
 
-    # Watch for new data
 
+    # Watch for new data
     while true
         (file, event) = watch_folder(datadir)
-        sleep(1)
+        sleep(waittime)
         
         if endswith(file, ext)
 
@@ -96,17 +102,13 @@ function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs)
     fig = Figure(resolution = (800, 500))
 
     inspector = DataInspector(fig,
-                    indicator_color = :deepskyblue, 
-                    indicator_linewidth = 1.5,
+                    indicator_color = indicator,
                     text_align = (:left, :bottom)
                     )
 
                     
     menu = Menu(fig, options = menu_options, width = 180, tellwidth = true)
     menu.i_selected = 1
-
-    toggle1 = Button(fig, label = "CH0 ON")
-    toggle2 = Button(fig, label = "CH0 OFF")
 
     vis1 = Observable(true)
     vis2 = Observable(false)
@@ -115,8 +117,6 @@ function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs)
     
     fig[1, 1] = vgrid!(
         menu,
-        toggle1,
-        toggle2,
         savebutton;
         tellheight = false
         )
@@ -127,26 +127,8 @@ function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs)
     
     newx, newy = Observable(xs[1]), Observable(ys[1])
     df = Observable(dfs[1])
-    # pump_on = Observable(rand(1))
-    # pump_off = Observable(rand(1))
 
     l1 = lines!(ax, newx, newy, linewidth = 1.0, color = :dodgerblue3)
-
-    # if :ΔA in propertynames(df.val)
-
-    #     pump_on[] = df[].on
-    #     pump_off = df[].off
-
-    #     ax2 = Axis(fig[1, 2], ylabel = "CH0 ON/OFF", yaxisposition = :right, yticks = LinearTicks(5))
-
-    #     l2 = lines!(ax2, newx.val, pump_on.val, linewidth = lw, color = :orangered, visible = vis1)
-    #     l3 = lines!(ax2, newx.val, pump_off.val, linewidth = lw, color = :indigo, visible = vis2)
-    #     autolimits!(ax2)
-
-    #     hidespines!(ax2)
-    #     hidexdecorations!(ax2)
-    #     hideydecorations!(ax2, ticks = false, ticklabels = false, label = false)
-    # end
 
     on(savebutton.clicks) do _
         save_folder = "./plots/"
