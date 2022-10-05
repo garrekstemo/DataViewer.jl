@@ -1,6 +1,5 @@
 function dynamicpanel(datadir::String, loadfunc::Function;
-                        resolution = (800, 500), 
-                        indicator = :deepskyblue2,
+                        resolution = (800, 500),
                         waittime::Int = 2,
                         )
     datadir = abspath(datadir)
@@ -9,7 +8,7 @@ function dynamicpanel(datadir::String, loadfunc::Function;
     sc = display(fig)
 
     inspector = DataInspector(fig,
-        indicator_color = indicator,
+        indicator_color = :deepskyblue2,
         text_align = (:left, :bottom)
         )
 
@@ -35,7 +34,7 @@ function dynamicpanel(datadir::String, loadfunc::Function;
     # Button Actions
 
     on(figbutton.clicks) do _
-        newfig = satellite_panel(plotnames, xlabels, ylabels, xdata, ydata, dfs, indicator=indicator)
+        newfig = satellite_panel(plotnames, xlabels, ylabels, xdata, ydata, dfs)
         display(GLMakie.Screen(), newfig)
     end
 
@@ -95,12 +94,12 @@ function dynamicpanel(datadir::String, loadfunc::Function;
 end
 
 
-function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs; indicator = :deepskyblue2)
+function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs)
 
     fig = Figure(resolution = (800, 500))
 
     inspector = DataInspector(fig,
-                    indicator_color = indicator,
+                    indicator_color = :orangered,
                     text_align = (:left, :bottom)
                     )
 
