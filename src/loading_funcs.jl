@@ -1,3 +1,13 @@
+function load_test_data(file::String)
+
+    loaded = Dict()
+
+    load = CSV.read(file)
+
+
+    return load
+end
+
 function loaddata(rawdf::DataFrame, file::String; test = false)
 
     xlabel = ""
@@ -33,6 +43,7 @@ function loaddata(rawdf::DataFrame, file::String; test = false)
             end
         end
     end
+
     if :ΔA in colnames
         ydata = rawdf.ΔA
         ylabel = "ΔA (arb.)"
@@ -42,10 +53,3 @@ function loaddata(rawdf::DataFrame, file::String; test = false)
     
     return xdata, ydata, xlabel, ylabel, filename
 end
-
-# function loaddata(rawdf::DataFrame, file::String; proj::Symbol = :test)
-
-#     colnames = propertynames(rawdf)
-#     filename = chop(file, tail = 4)
-#     return rawdf[!, 1], rawdf[!, 2], String(colnames[1]), String(colnames[2]), filename
-# end
