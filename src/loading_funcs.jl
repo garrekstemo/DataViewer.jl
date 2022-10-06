@@ -2,7 +2,7 @@ function load_test_data(file::String)
 
     loaded = Dict()
 
-    load = CSV.read(file)
+    load = CSV.File(file)
 
 
     return load
