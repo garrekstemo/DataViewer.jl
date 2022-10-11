@@ -5,7 +5,7 @@ function load_test_data(file::String)
     return loaded, title
 end
 
-function loaddata(rawdf::DataFrame, file::String; test = false)
+function loaddata(file::String)
 
     xlabel = ""
     ylabel = ""
