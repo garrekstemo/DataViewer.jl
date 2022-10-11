@@ -12,7 +12,7 @@ function loaddata(filepath)
     xdata = []
     ydata = []
 
-    df = readlvm(filepath, :MIR)
+    df = DataFrame(readlvm(filepath, :MIR))
     colnames = propertynames(df)
     println(colnames)
 
