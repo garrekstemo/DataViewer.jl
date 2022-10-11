@@ -42,7 +42,7 @@ function loaddata(filepath)
         ylabel = "ΔA (arb.)"
     end
 
-    filename = chop(filepath, tail = 4)
+    filename = chop(splitdir(filepath)[end], tail = 4)
     
     return xdata, ydata, xlabel, ylabel, filename
 end
