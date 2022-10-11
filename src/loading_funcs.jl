@@ -12,37 +12,32 @@ function loaddata(file::String)
     xdata = []
     ydata = []
 
-    colnames = propertynames(rawdf)
-    df = DataFrame()
-
-    if test == true
-        return rawdf[!, 1], rawdf[!, 2], String(colnames[1]), String(colnames[2]), filename
-    end
+    df = readlvm(file, :MIR)
 
     if :wavelength in colnames
-        xdata = rawdf.wavelength
+        xdata = df.wavelength
         xlabel = "Wavelength (nm)"
     elseif :time in colnames
-        xdata = rawdf.time
+        xdata = df.time
         xlabel = "Time (fs)"
     else
-        xdata = range(1, length = length(rawdf[!, 1]))
+        xdata = range(1, length = length(df[!, 1]))
     end
 
     if :signal in colnames
-        ydata = rawdf.signal
+        ydata = df.signal
         ylabel = "Signal (arb.)"
     else
-        for name in propertynames(rawdf)
+        for name in propertynames(df)
             if occursin("CH0_", String(name))
-                ydata = rawdf[!, name]
+                ydata = df[!, name]
                 ylabel = String(name)
             end
         end
     end
 
     if :ΔA in colnames
-        ydata = rawdf.ΔA
+        ydata = df.ΔA
         ylabel = "ΔA (arb.)"
     end
 
