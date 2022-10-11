@@ -1,11 +1,8 @@
 function load_test_data(file::String)
 
-    loaded = Dict()
+    loaded = DataFrame(CSV.File(file))
 
-    load = CSV.File(file)
-
-
-    return load
+    return loaded, title
 end
 
 function loaddata(rawdf::DataFrame, file::String; test = false)
