@@ -13,6 +13,7 @@ function loaddata(filepath)
     ydata = []
 
     df = readlvm(filepath, :MIR)
+    colnames = propertynames(df)
 
     if :wavelength in colnames
         xdata = df.wavelength
@@ -28,7 +29,7 @@ function loaddata(filepath)
         ydata = df.signal
         ylabel = "Signal (arb.)"
     else
-        for name in propertynames(df)
+        for name in colnames
             if occursin("CH0_", String(name))
                 ydata = df[!, name]
                 ylabel = String(name)
