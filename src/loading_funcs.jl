@@ -14,6 +14,7 @@ function loaddata(filepath)
 
     df = readlvm(filepath, :MIR)
     colnames = propertynames(df)
+    println(colnames)
 
     if :wavelength in colnames
         xdata = df.wavelength
