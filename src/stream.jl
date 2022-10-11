@@ -61,7 +61,7 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
             # end
 
 
-            x, y, xlabel, ylabel, ptitle = load_function(file)
+            x, y, xlabel, ylabel, ptitle = load_function(joinpath(datadir, file))
 
             if !(ptitle in plotnames[])
 

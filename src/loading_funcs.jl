@@ -5,14 +5,14 @@ function load_test_data(file::String)
     return loaded, title
 end
 
-function loaddata(file::String)
+function loaddata(filepath)
 
     xlabel = ""
     ylabel = ""
     xdata = []
     ydata = []
 
-    df = readlvm(file, :MIR)
+    df = readlvm(filepath, :MIR)
 
     if :wavelength in colnames
         xdata = df.wavelength
