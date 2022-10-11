@@ -1,4 +1,4 @@
-function dynamicpanel(datadir::String, load_function::Function;
+function dynamicpanel(datadir::String, load_function::Function, file_ext::String;
                         resolution = nothing,
                         waittime::Integer = 2,
                         theme = nothing
@@ -33,10 +33,6 @@ function dynamicpanel(datadir::String, load_function::Function;
     line = lines!(axlive, xslive, yslive, color = :firebrick4, linewidth = 1.0)
     livetext = text!(axlive, " • Live", color = :red, space = :relative, align = (:left, :bottom))
 
-    if fontsize !== nothing
-        livetext.fontsize = fontsize
-    end
-
 
     # Button Actions
 
@@ -51,7 +47,7 @@ function dynamicpanel(datadir::String, load_function::Function;
         (file, event) = watch_folder(datadir)
         sleep(waittime)
         
-        if endswith(file, ext)
+        if endswith(file, file_ext)
 
             if findfirst('\\', file) == 1
                 file = file[2:end]
