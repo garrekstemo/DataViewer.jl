@@ -1,6 +1,6 @@
-function load_test_data(file::String)
+function load_test_data(filepath::String)
 
-    loaded = DataFrame(CSV.File(file))
+    loaded = DataFrame(CSV.File(filepath))
 
     return loaded, title
 end
@@ -14,7 +14,6 @@ function loaddata(filepath)
 
     df = DataFrame(readlvm(filepath, :MIR))
     colnames = propertynames(df)
-    println(colnames)
 
     if :wavelength in colnames
         xdata = df.wavelength
@@ -43,7 +42,7 @@ function loaddata(filepath)
         ylabel = "ΔA (arb.)"
     end
 
-    filename = chop(file, tail = 4)
+    filename = chop(filepath, tail = 4)
     
     return xdata, ydata, xlabel, ylabel, filename
 end
