@@ -54,13 +54,6 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
             end
             println("New file: ", file)
 
-            # if size(rawdf) == (0, 0)
-            #     println("I read that file before it could finish writing. Trying again...")
-            #     sleep(1)
-            #     rawdf = DataFrame(readlvm(datadir * file, proj))
-            # end
-
-
             x, y, xlabel, ylabel, ptitle = load_function(joinpath(datadir, file))
 
             if !(ptitle in plotnames[])
