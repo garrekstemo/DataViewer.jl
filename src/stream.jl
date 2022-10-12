@@ -1,6 +1,5 @@
 function dynamicpanel(datadir::String, load_function::Function, file_ext::String;
-                        resolution = nothing,
-                        waittime::Integer = 2,
+                        waittime = 0.5,
                         theme = nothing
                         )
 
