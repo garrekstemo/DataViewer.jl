@@ -1,3 +1,4 @@
+scratch/
 *.jl.cov
 *.jl.*.cov
 *.jl.mem

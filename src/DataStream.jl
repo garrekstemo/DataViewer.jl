@@ -8,5 +8,9 @@ using LVM
 
 include("stream.jl")
 include("loading_funcs.jl")
+include("themes.jl")
+
+export dynamicpanel
+export load_mir
 
 end # module

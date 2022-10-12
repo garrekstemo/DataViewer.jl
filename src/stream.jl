@@ -1,30 +1,28 @@
-function dynamicpanel(datadir::String; 
-                        proj::Symbol=:MIR, 
-                        ext::String=".lvm", 
-                        resolution = (800, 500), 
-                        indicator = :deepskyblue2, 
-                        waittime::Int = 2,
+function dynamicpanel(datadir::String, load_function::Function, file_ext::String;
+                        waittime = 0.5,
+                        theme = nothing
                         )
+
     datadir = abspath(datadir)
 
-    fig = Figure(resolution = resolution)
-    sc = display(fig)
+    if theme !== nothing
+        set_theme!(theme)
+    end
 
-    inspector = DataInspector(fig,
-        indicator_color = indicator,
-        text_align = (:left, :bottom)
-        )
+    fig = Figure()
 
     xdata, ydata = [rand(1)], [rand(1)]
     xslive, yslive = Observable(xdata[1]), Observable(ydata[1])
-    
     xlabels, ylabels = Observable([""]), Observable([""])
     plotnames = Observable(["no options"])
-    
-    dfs = []
 
+    sc = display(fig)
+    inspector = DataInspector(
+                    fig,
+                    indicator_color = :deepskyblue2,
+                    text_align = (:left, :bottom)
+                    )
     figbutton = Button(fig, label = "New Figure")
-    
     fig[1, 1] = vgrid!(
         figbutton;
         tellheight = false, width = 130
@@ -34,12 +32,13 @@ function dynamicpanel(datadir::String;
     line = lines!(axlive, xslive, yslive, color = :firebrick4, linewidth = 1.0)
     livetext = text!(axlive, " • Live", color = :red, space = :relative, align = (:left, :bottom))
 
+
     # Button Actions
 
-    on(figbutton.clicks) do _
-        newfig = satellite_panel(plotnames, xlabels, ylabels, xdata, ydata, dfs)
-        display(GLMakie.Screen(), newfig)
-    end
+    # on(figbutton.clicks) do _
+    #     newfig = satellite_panel(plotnames, xlabels, ylabels, xdata, ydata, dfs)
+    #     display(GLMakie.Screen(), newfig)
+    # end
 
 
     # Watch for new data
@@ -47,33 +46,14 @@ function dynamicpanel(datadir::String;
         (file, event) = watch_folder(datadir)
         sleep(waittime)
         
-        if endswith(file, ext)
+        if endswith(file, file_ext)
 
             if findfirst('\\', file) == 1
                 file = file[2:end]
             end
             println("New file: ", file)
 
-            if ext == ".lvm"
-                rawdf = DataFrame(readlvm(datadir * file, proj))
-
-                if size(rawdf) == (0, 0)
-                    println("I read that file before it could finish writing. Trying again...")
-                    sleep(1)
-                    rawdf = DataFrame(readlvm(datadir * file, proj))
-                end
-                pushfirst!(dfs, rawdf)
-
-            else
-                rawdf = DataFrame(CSV.File(datadir * file))
-            end
-
-
-            if proj == :test
-                x, y, xlabel, ylabel, ptitle = loaddata(rawdf, file; proj = :test)
-            else
-                x, y, xlabel, ylabel, ptitle = loaddata(rawdf, file)
-            end
+            x, y, xlabel, ylabel, ptitle = load_function(joinpath(datadir, file))
 
             if !(ptitle in plotnames[])
 
@@ -102,7 +82,7 @@ function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs)
     fig = Figure(resolution = (800, 500))
 
     inspector = DataInspector(fig,
-                    indicator_color = indicator,
+                    indicator_color = :orangered,
                     text_align = (:left, :bottom)
                     )
 
@@ -154,7 +134,6 @@ function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs)
     on(menu.selection) do _
         i = to_value(menu.i_selected)
 
-        
         newx.val = xs[i]
         newy[] = ys[i]
         df[] = dfs[i]
