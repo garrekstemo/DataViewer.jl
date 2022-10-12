@@ -1,3 +1,12 @@
+# All data reading and loading functions must take a single argument,
+# the path of the raw data file, and must output... (still deciding the output). 
+
+"""
+    load_test_data(filepath)
+
+Use this function to test with test data 
+in the testdata directory in this package.
+"""
 function load_test_data(filepath::String)
 
     loaded = DataFrame(CSV.File(filepath))
@@ -5,6 +14,12 @@ function load_test_data(filepath::String)
     return loaded, title
 end
 
+"""
+    load_mir(filepath)
+
+Load data for MIR experiments using LVM.jl (:MIR project symbol)
+and apply appropriate axis labels and plot title.
+"""
 function load_mir(filepath)
 
     xlabel = ""

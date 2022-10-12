@@ -11,6 +11,6 @@ include("loading_funcs.jl")
 include("themes.jl")
 
 export dynamicpanel
-export loaddata
+export load_mir
 
 end # module
