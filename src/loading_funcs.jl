@@ -5,7 +5,7 @@ function load_test_data(filepath::String)
     return loaded, title
 end
 
-function loaddata(filepath)
+function load_mir(filepath)
 
     xlabel = ""
     ylabel = ""
