@@ -39,7 +39,7 @@ function loaddata(filepath)
 
     if :ΔA in colnames
         ydata = df.ΔA
-        ylabel = "ΔA (arb.)"
+        ylabel = "Δ (arb.)"
     end
 
     filename = chop(splitdir(filepath)[end], tail = 4)
