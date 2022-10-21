@@ -17,11 +17,8 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
     plotnames = Observable(["no options"])
 
     sc = display(fig)
-    inspector = DataInspector(
-                    fig,
-                    indicator_color = :deepskyblue2,
-                    text_align = (:left, :bottom)
-                    )
+    DataInspector(fig)
+
     figbutton = Button(fig, label = "New Figure")
     fig[1, 1] = vgrid!(
         figbutton;
@@ -80,13 +77,8 @@ end
 function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs)
 
     fig = Figure(resolution = (800, 500))
+    DataInspector(fig)
 
-    inspector = DataInspector(fig,
-                    indicator_color = :orangered,
-                    text_align = (:left, :bottom)
-                    )
-
-                    
     menu = Menu(fig, options = menu_options, width = 180, tellwidth = true)
     menu.i_selected = 1
 
