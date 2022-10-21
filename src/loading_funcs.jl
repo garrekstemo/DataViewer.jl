@@ -52,8 +52,8 @@ function load_mir(filepath)
         end
     end
 
-    if :ΔA in colnames
-        ydata = df.ΔA
+    if :Δ in colnames
+        ydata = df.Δ
         ylabel = "Δ (arb.)"
     end
 
