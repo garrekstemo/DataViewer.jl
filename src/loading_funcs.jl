@@ -63,6 +63,13 @@ function load_mir(filepath)
         newdf.Δ = df.Δ
     end
 
+    if :on in colnames
+        newdf.on = df.on
+    end
+    if :off in colnames
+        newdf.off = df.off
+    end
+
     filename = chop(splitdir(filepath)[end], tail = 4)
     
     return xdata, ydata, xlabel, ylabel, filename, newdf
