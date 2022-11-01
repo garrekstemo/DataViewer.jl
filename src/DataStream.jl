@@ -2,6 +2,7 @@ module DataStream
 
 using CSV
 using DataFrames
+using Dates
 using FileWatching
 using GLMakie
 using LVM

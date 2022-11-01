@@ -21,7 +21,7 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
     xslive, yslive = Observable(xdata[1]), Observable(ydata[1])
     xlabels, ylabels = Observable([""]), Observable([""])
     plotnames = Observable(["no options"])
-    dataframe = Observable(DataFrame())
+    dataframe = Observable(DataFrame(A = rand(1), B = rand(1)))
 
     sc = display(fig)
     DataInspector(fig)
@@ -40,7 +40,7 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
     # Button Actions
 
     on(figbutton.clicks) do _
-        newfig = satellite_panel(to_value(dataframe))
+        newfig = satellite_panel(to_value(dataframe), to_value(plotnames)[1])
         display(GLMakie.Screen(), newfig)
     end
 
@@ -87,7 +87,7 @@ end
 A satellite panel that appears upon clicking a button on the live panel.
 Not a user-facing function.
 """
-function satellite_panel(df::DataFrame)
+function satellite_panel(df::DataFrame, title)
 
     fig = Figure()
     DataInspector(fig)
@@ -97,11 +97,11 @@ function satellite_panel(df::DataFrame)
     x = Observable(df[!, 1])
     y = Observable(df[!, 2])
 
-    menu = Menu(fig, options = menu_options, width = 180, tellwidth = true)
+    menu = Menu(fig, options = menu_options, width = 150, tellwidth = true)
     savebutton = Button(fig, label = "Save as png")
     
     fig[1, 1] = vgrid!(
-        Label("Choose y-axis"),
+        Label(fig, "Choose y-axis", width=nothing),
         menu,
         savebutton;
         tellheight = false
@@ -111,13 +111,14 @@ function satellite_panel(df::DataFrame)
                          xticks = LinearTicks(7), yticks = LinearTicks(5))
 
     lines!(ax, x, y)
+    ax.title = title
 
     on(savebutton.clicks) do _
         save_folder = "./plots/"
         if !isdir(save_folder)
             mkdir(save_folder)
         end
-        plotname = "$(to_value(menu.selection))"
+        plotname = "$(to_value(menu.selection))" * "_" * string(today())
 
         save_path = abspath(save_folder * plotname * "_plot.png")
         savefig = make_savefig(x, y, plotname)
