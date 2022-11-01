@@ -118,9 +118,9 @@ function satellite_panel(df::DataFrame, title)
         if !isdir(save_folder)
             mkdir(save_folder)
         end
-        plotname = "$(to_value(menu.selection))" * "_" * string(today())
+        plotname = title * "_$(to_value(menu.selection)).png"
 
-        save_path = abspath(save_folder * plotname * "_plot.png")
+        save_path = joinpath(save_folder, plotname)
         savefig = make_savefig(x, y, plotname)
 
         save(save_path, savefig)
