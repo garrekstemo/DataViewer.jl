@@ -101,7 +101,7 @@ function satellite_panel(df::DataFrame)
     savebutton = Button(fig, label = "Save as png")
     
     fig[1, 1] = vgrid!(
-        Label("Choose y-axis")
+        Label("Choose y-axis"),
         menu,
         savebutton;
         tellheight = false
