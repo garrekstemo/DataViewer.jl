@@ -53,6 +53,7 @@ function load_mir(filepath)
             if occursin("CH0_", String(name))
                 ydata = df[!, name]
                 ylabel = String(name)
+                newdf.signal = df[!, name]
             end
         end
     end
