@@ -1,3 +1,9 @@
+"""
+    dynamicpanel()
+
+A panel with a plot that updates when a new data file is found
+in the given directory.
+"""
 function dynamicpanel(datadir::String, load_function::Function, file_ext::String;
                         waittime = 0.1,
                         theme = nothing
@@ -75,7 +81,12 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
 
 end
 
+"""
+    satellite_panel(df::DataFrame)
 
+A satellite panel that appears upon clicking a button on the live panel.
+Not a user-facing function.
+"""
 function satellite_panel(df::DataFrame)
 
     fig = Figure()
