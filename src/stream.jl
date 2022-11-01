@@ -52,7 +52,7 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
             println("New file: ", file)
 
             x, y, xlabel, ylabel, ptitle, df = load_function(joinpath(datadir, file))
-            
+
             if !(ptitle in plotnames[])
 
                 xslive.val = x
@@ -87,10 +87,12 @@ function satellite_panel(df::DataFrame)
     y = Observable(df[!, 2])
 
     menu = Menu(fig, options = menu_options, width = 180, tellwidth = true)
-    # savebutton = Button(fig, label = "Save Figure")
+    savebutton = Button(fig, label = "Save as png")
     
     fig[1, 1] = vgrid!(
-        menu;
+        Label("Choose y-axis")
+        menu,
+        savebutton;
         tellheight = false
         )
 
@@ -99,19 +101,19 @@ function satellite_panel(df::DataFrame)
 
     lines!(ax, x, y)
 
-    # on(savebutton.clicks) do _
-    #     save_folder = "./plots/"
-    #     if !isdir(save_folder)
-    #         mkdir(save_folder)
-    #     end
-    #     plotname = "$(to_value(menu.selection))"
+    on(savebutton.clicks) do _
+        save_folder = "./plots/"
+        if !isdir(save_folder)
+            mkdir(save_folder)
+        end
+        plotname = "$(to_value(menu.selection))"
 
-    #     save_path = abspath(save_folder * plotname * "_plot.png")
-    #     savefig = make_savefig(newx, newy, plotname)
+        save_path = abspath(save_folder * plotname * "_plot.png")
+        savefig = make_savefig(x, y, plotname)
 
-    #     save(save_path, savefig)
-    #     println("Saved figure to ", save_path)
-    # end
+        save(save_path, savefig)
+        println("Saved figure to ", save_path)
+    end
 
 
     on(menu.selection) do _
