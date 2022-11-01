@@ -13,6 +13,8 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
 
     xdata, ydata = [rand(1)], [rand(1)]
     xslive, yslive = Observable(xdata[1]), Observable(ydata[1])
+    xlabels, ylabels = Observable([""]), Observable([""])
+    plotnames = Observable(["no options"])
     dataframe = Observable(DataFrame())
 
     sc = display(fig)
@@ -32,7 +34,7 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
     # Button Actions
 
     on(figbutton.clicks) do _
-        newfig = satellite_panel(dataframe)
+        newfig = satellite_panel(to_value(dataframe))
         display(GLMakie.Screen(), newfig)
     end
 
@@ -50,7 +52,7 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
             println("New file: ", file)
 
             x, y, xlabel, ylabel, ptitle, df = load_function(joinpath(datadir, file))
-
+            
             if !(ptitle in plotnames[])
 
                 xslive.val = x
@@ -79,12 +81,12 @@ function satellite_panel(df::DataFrame)
     fig = Figure()
     DataInspector(fig)
 
-    menu_options = Observable(propertynames(df))
-
-    menu = Menu(fig, options = menu_options, width = 180, tellwidth = true)
-
+    colnames = names(df)
+    menu_options = Observable(colnames)
     x = Observable(df[!, 1])
     y = Observable(df[!, 2])
+
+    menu = Menu(fig, options = menu_options, width = 180, tellwidth = true)
     # savebutton = Button(fig, label = "Save Figure")
     
     fig[1, 1] = vgrid!(
@@ -92,7 +94,10 @@ function satellite_panel(df::DataFrame)
         tellheight = false
         )
 
-    ax = Axis(fig[1, 2], xticks = LinearTicks(7), yticks = LinearTicks(5))
+    ax = Axis(fig[1, 2], xlabel = colnames[1], ylabel = colnames[2], 
+                         xticks = LinearTicks(7), yticks = LinearTicks(5))
+
+    lines!(ax, x, y)
 
     # on(savebutton.clicks) do _
     #     save_folder = "./plots/"
@@ -112,12 +117,8 @@ function satellite_panel(df::DataFrame)
     on(menu.selection) do _
         i = to_value(menu.i_selected)
 
-        # x.val = df[]
         y[] = df[!, i]
-
-        # ax.title = menu_options[][i]
-        # ax.xlabel = xlabels[][i]
-        # ax.ylabel = ylabels[][i]
+        ax.ylabel = colnames[i]
         autolimits!(ax)
     end
 
