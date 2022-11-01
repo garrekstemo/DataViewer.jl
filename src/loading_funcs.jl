@@ -59,5 +59,5 @@ function load_mir(filepath)
 
     filename = chop(splitdir(filepath)[end], tail = 4)
     
-    return xdata, ydata, xlabel, ylabel, filename
+    return xdata, ydata, xlabel, ylabel, filename, df
 end

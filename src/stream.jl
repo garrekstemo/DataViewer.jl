@@ -13,8 +13,7 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
 
     xdata, ydata = [rand(1)], [rand(1)]
     xslive, yslive = Observable(xdata[1]), Observable(ydata[1])
-    xlabels, ylabels = Observable([""]), Observable([""])
-    plotnames = Observable(["no options"])
+    dataframe = Observable(DataFrame())
 
     sc = display(fig)
     DataInspector(fig)
@@ -32,10 +31,10 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
 
     # Button Actions
 
-    # on(figbutton.clicks) do _
-    #     newfig = satellite_panel(plotnames, xlabels, ylabels, xdata, ydata, dfs)
-    #     display(GLMakie.Screen(), newfig)
-    # end
+    on(figbutton.clicks) do _
+        newfig = satellite_panel(dataframe)
+        display(GLMakie.Screen(), newfig)
+    end
 
 
     # Watch for new data
@@ -50,12 +49,13 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
             end
             println("New file: ", file)
 
-            x, y, xlabel, ylabel, ptitle = load_function(joinpath(datadir, file))
+            x, y, xlabel, ylabel, ptitle, df = load_function(joinpath(datadir, file))
 
             if !(ptitle in plotnames[])
 
                 xslive.val = x
                 yslive[] = y
+                dataframe[] = df
 
                 autolimits!(axlive)
                 axlive.title = ptitle
@@ -74,73 +74,54 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
 end
 
 
-function satellite_panel(menu_options, xlabels, ylabels, xs, ys, dfs)
+function satellite_panel(df::DataFrame)
 
-    fig = Figure(resolution = (800, 500))
+    fig = Figure()
     DataInspector(fig)
 
+    menu_options = Observable(propertynames(df))
+
     menu = Menu(fig, options = menu_options, width = 180, tellwidth = true)
-    menu.i_selected = 1
 
-    vis1 = Observable(true)
-    vis2 = Observable(false)
-
-    savebutton = Button(fig, label = "Save Figure")
+    x = Observable(df[!, 1])
+    y = Observable(df[!, 2])
+    # savebutton = Button(fig, label = "Save Figure")
     
     fig[1, 1] = vgrid!(
-        menu,
-        savebutton;
+        menu;
         tellheight = false
         )
 
-    lw = 0.7
-
     ax = Axis(fig[1, 2], xticks = LinearTicks(7), yticks = LinearTicks(5))
-    
-    newx, newy = Observable(xs[1]), Observable(ys[1])
-    df = Observable(dfs[1])
 
-    l1 = lines!(ax, newx, newy, linewidth = 1.0, color = :dodgerblue3)
+    # on(savebutton.clicks) do _
+    #     save_folder = "./plots/"
+    #     if !isdir(save_folder)
+    #         mkdir(save_folder)
+    #     end
+    #     plotname = "$(to_value(menu.selection))"
 
-    on(savebutton.clicks) do _
-        save_folder = "./plots/"
-        if !isdir(save_folder)
-            mkdir(save_folder)
-        end
-        plotname = "$(to_value(menu.selection))"
+    #     save_path = abspath(save_folder * plotname * "_plot.png")
+    #     savefig = make_savefig(newx, newy, plotname)
 
-        save_path = abspath(save_folder * plotname * "_plot.png")
-        savefig = make_savefig(newx, newy, plotname)
+    #     save(save_path, savefig)
+    #     println("Saved figure to ", save_path)
+    # end
 
-        save(save_path, savefig)
-        println("Saved figure to ", save_path)
-    end
-
-    on(toggle1.clicks) do _
-        vis1[] = !(vis1.val)
-    end
-    on(toggle2.clicks) do _
-        vis2[] = !(vis2.val)
-    end
 
     on(menu.selection) do _
         i = to_value(menu.i_selected)
 
-        newx.val = xs[i]
-        newy[] = ys[i]
-        df[] = dfs[i]
-        # if :ΔA in propertynames(df.val)
-        #     pump_on[] = df[].on
-        #     pump_off[] = df[].off
-        # end
+        # x.val = df[]
+        y[] = df[!, i]
 
-        ax.title = menu_options[][i]
-        ax.xlabel = xlabels[][i]
-        ax.ylabel = ylabels[][i]
+        # ax.title = menu_options[][i]
+        # ax.xlabel = xlabels[][i]
+        # ax.ylabel = ylabels[][i]
         autolimits!(ax)
     end
 
-    fig
+    return fig
 end
 
 function make_savefig(x, y, title)
