@@ -130,10 +130,8 @@ function satellite_panel(df::DataFrame, title)
 
     on(menu.selection) do _
         i = to_value(menu.i_selected)
-
         y[] = df[!, i]
         ax.ylabel = colnames[i]
-        autolimits!(ax)
     end
 
     return fig
