@@ -29,7 +29,6 @@ function livepanel(datadir::String, load_function::Function, file_ext::String;
     figbutton = Button(fig, label = "New Figure")
     fig[2, 1] = vgrid!(
         figbutton;
-        tellheight = false, height = 50,
         tellwidth = false,
         )
     
