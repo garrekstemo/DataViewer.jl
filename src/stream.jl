@@ -4,7 +4,7 @@
 A panel with a plot that updates when a new data file is found
 in the given directory.
 """
-function dynamicpanel(datadir::String, load_function::Function, file_ext::String;
+function livepanel(datadir::String, load_function::Function, file_ext::String;
                         waittime = 0.1,
                         theme = nothing
                         )
