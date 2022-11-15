@@ -27,12 +27,13 @@ function dynamicpanel(datadir::String, load_function::Function, file_ext::String
     DataInspector(fig)
 
     figbutton = Button(fig, label = "New Figure")
-    fig[1, 1] = vgrid!(
+    fig[2, 1] = vgrid!(
         figbutton;
-        tellheight = false, width = 130
+        tellheight = false, height = 200,
+        tellwidth = false,
         )
     
-    axlive = Axis(fig[1, 2][1, 1], xticks = LinearTicks(7), yticks = LinearTicks(5))
+    axlive = Axis(fig[1,1][1, 1], xticks = LinearTicks(7), yticks = LinearTicks(5))
     line = lines!(axlive, xslive, yslive, color = :firebrick4, linewidth = 1.0)
     livetext = text!(axlive, " • Live", color = :red, space = :relative, align = (:left, :bottom))
 
