@@ -91,13 +91,13 @@ function satellite_panel(df::DataFrame, title)
     fig = Figure()
     DataInspector(fig)
 
-    colnames = names(df)
-    menu_options = Observable(colnames)
-    x = Observable(df[!, 1])
-    y = Observable(df[!, 2])
-
-    # x units
+    # Set x units
     startunits = ""
+    wavelen = "Wavelength (nm)"
+    wavenum = "Wavenumber (cm⁻¹)"
+    fs = "Pump delay (fs)"
+    ps = "Pump delay (ps)"
+    
     if "wavelength" in lowercase.(colnames)
         startunits = "Wavelength (nm)"
     elseif "time" in lowercase.(colnames)
@@ -105,18 +105,20 @@ function satellite_panel(df::DataFrame, title)
     else
         startunits = "x"
     end
-    wavelen = "Wavelength (nm)"
-    wavenum = "Wavenumber (cm⁻¹)"
-    fs = "Pump delay (fs)"
-    ps = "Pump delay (ps)"
 
+    # Observables and widgets
 
-    # Draw the figure
+    colnames = names(df)
+    menu_options = Observable(colnames)
+    x = Observable(df[!, 1])
+    y = Observable(df[!, 2])
 
     menu = Menu(fig, options = menu_options, width = 150, tellwidth = true)
     savebutton = Button(fig, label = "Save as png")
     xunits_button = Button(fig, label = startunits)
     
+    # Draw figure
+
     fig[1, 1] = vgrid!(
         Label(fig, "Choose data", justification = :center, width=nothing),
         menu,
@@ -127,12 +129,12 @@ function satellite_panel(df::DataFrame, title)
         )
 
     ax = Axis(fig[1, 2],
-            title = title,
-            xlabel = startunits,
-            ylabel = colnames[2], 
-            xticks = LinearTicks(7),
-            yticks = LinearTicks(5)
-            )
+        title = title,
+        xlabel = startunits,
+        ylabel = colnames[2], 
+        xticks = LinearTicks(7),
+        yticks = LinearTicks(5)
+        )
     lines!(ax, x, y)
 
 
