@@ -1,8 +1,8 @@
 """
-    dynamicpanel()
+    livepanel(datadir::String, load_function::Function, file_ext::String; waittime = 0.1, theme = nothing)
 
 A panel with a plot that updates when a new data file is found
-in the given directory.
+in the given directory. Satellite panels can be opened via buttons.
 """
 function livepanel(datadir::String, load_function::Function, file_ext::String;
                         waittime = 0.1,
@@ -10,7 +10,6 @@ function livepanel(datadir::String, load_function::Function, file_ext::String;
                         )
 
     datadir = abspath(datadir)
-
     if theme !== nothing
         set_theme!(theme)
     end
@@ -82,7 +81,7 @@ function livepanel(datadir::String, load_function::Function, file_ext::String;
 end
 
 """
-    satellite_panel(df::DataFrame)
+    satellite_panel(df::DataFrame, title)
 
 A satellite panel that appears upon clicking a button on the live panel.
 Not a user-facing function.
@@ -97,21 +96,68 @@ function satellite_panel(df::DataFrame, title)
     x = Observable(df[!, 1])
     y = Observable(df[!, 2])
 
+    # x units
+    startunits = ""
+    if "wavelength" in lowercase.(colnames)
+        startunits = "Wavelength (nm)"
+    elseif "time" in lowercase.(colnames)
+        startunits = "Pump delay (fs)"
+    else
+        startunits = "x"
+    end
+    wavelen = "Wavelength (nm)"
+    wavenum = "Wavenumber (cm⁻¹)"
+    fs = "Pump delay (fs)"
+    ps = "Pump delay (ps)"
+
+
+    # Draw the figure
+
     menu = Menu(fig, options = menu_options, width = 150, tellwidth = true)
     savebutton = Button(fig, label = "Save as png")
+    xunits_button = Button(fig, label = startunits)
     
     fig[1, 1] = vgrid!(
-        Label(fig, "Choose y-axis", width=nothing),
+        Label(fig, "Choose data", justification = :center, width=nothing),
         menu,
-        savebutton;
+        savebutton,
+        Label(fig, "Change x units", justification = :center, width=nothing),
+        xunits_button;
         tellheight = false
         )
 
-    ax = Axis(fig[1, 2], xlabel = colnames[1], ylabel = colnames[2], 
-                         xticks = LinearTicks(7), yticks = LinearTicks(5))
-
+    ax = Axis(fig[1, 2],
+            title = title,
+            xlabel = startunits,
+            ylabel = colnames[2], 
+            xticks = LinearTicks(7),
+            yticks = LinearTicks(5)
+            )
     lines!(ax, x, y)
-    ax.title = title
+
+
+    # Button & Menu actions
+
+    on(xunits_button.clicks) do _
+        if to_value(ax.xlabel) == wavelen
+            x[] = 10^7 ./ x[]
+            ax.xlabel = wavenum
+            xunits_button.label = wavenum
+        elseif to_value(ax.xlabel) == wavenum
+            x[] = 10^7 ./ x[]
+            ax.xlabel = wavelen
+            xunits_button.label = wavelen
+        elseif to_value(ax.xlabel) == fs
+            x[] = x[] ./ 1000
+            ax.xlabel = ps
+            xunits_button.label = ps
+        elseif to_value(ax.xlabel) == ps
+            x[] = x[] .* 1000
+            ax.xlabel = fs
+            xunits_button.label = fs
+        end
+        autolimits!(ax)
+    end
 
     on(savebutton.clicks) do _
         save_folder = "./plots/"
@@ -126,7 +172,6 @@ function satellite_panel(df::DataFrame, title)
         save(save_path, savefig)
         println("Saved figure to ", save_path)
     end
-
 
     on(menu.selection) do _
         i = to_value(menu.i_selected)
