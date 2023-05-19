@@ -91,7 +91,7 @@ function satellite_panel(df::DataFrame, title)
     DataInspector(fig)
 
     colnames = names(df)
-    println(colnames)
+
     # Set x units
     startunits = ""
     wavelen = "Wavelength (nm)"
@@ -109,19 +109,15 @@ function satellite_panel(df::DataFrame, title)
 
     # Observables and widgets
 
-    menu_options = Observable(["nonlinear", "linear"])
     x = Observable(df[!, 1])
-    y = Observable(df[!, 2])
-
-    menu = Menu(fig, options = menu_options, width = 150, tellwidth = true)
+    y = Observable(df[!, 2])  # automatically plot nonlinear data if it exists
     savebutton = Button(fig, label = "Save as png")
     xunits_button = Button(fig, label = startunits)
     
     # Draw figure
 
-    fig[1, 1] = vgrid!(
+    fig[1, 1][1, 1] = vgrid!(
         Label(fig, "Choose data", justification = :center, width=nothing),
-        menu,
         savebutton,
         Label(fig, "Change x units", justification = :center, width=nothing),
         xunits_button;
@@ -135,10 +131,34 @@ function satellite_panel(df::DataFrame, title)
         xticks = LinearTicks(7),
         yticks = LinearTicks(5)
         )
-    lines!(ax, x, y)
+    lineplots = [lines!(ax, x, y, color = :indigo, label = "nonlinear", visible = true)]
 
 
-    # Button & Menu actions
+    # Buttons and Interactivity
+
+    if length(colnames) > 2
+        linearbutton = Button(fig[2, 2][1, 1], label = "Linear", tellwidth = false)
+        nonlinearbutton = Button(fig[2, 2][1, 2], label = "Nonlinear", tellwidth = false)
+
+        push!(lineplots, lines!(ax, x, -df.off, color = :deepskyblue3, label = "pump off", visible = false))
+        push!(lineplots, lines!(ax, x, -df.on, color = :crimson, label = "pump on", visible = false))
+        Legend(fig[1, 1][2, 1], ax)
+
+        on(nonlinearbutton.clicks) do _
+                lineplots[1].visible = true
+                lineplots[2].visible = false
+                lineplots[3].visible = false
+                ax.ylabel = "ΔA (arb.)"
+                autolimits!(ax)
+        end
+        on(linearbutton.clicks) do _
+                lineplots[1].visible = false
+                lineplots[2].visible = true
+                lineplots[3].visible = true
+                ax.ylabel = "Pump on/off intensity (arb.)"
+                autolimits!(ax)
+        end
+    end
 
     on(xunits_button.clicks) do _
         if to_value(ax.xlabel) == wavelen
@@ -167,24 +187,14 @@ function satellite_panel(df::DataFrame, title)
             mkdir(save_folder)
         end
 
-        plotname = title * "_$(to_value(menu.selection))"
+        plotname = title
         save_path = abspath(joinpath(save_folder, plotname * ".png"))
         savefig = make_savefig(x, y, plotname, to_value(ax.xlabel), to_value(ax.ylabel))
         save(save_path, savefig)
         println("Saved figure to ", save_path)
     end
 
-    on(menu.selection) do selected
-
-        if selected == "nonlinear"
-            y[] = df.signal
-            ax.ylabel = "ΔA (arb.)"
-        elseif selected == "linear"
-            y[] = df.off
-            ax.ylabel = "pump on/off intensity (arb.)"
-        end
-        autolimits!(ax)
-    end
+  
 
     return fig
 end
