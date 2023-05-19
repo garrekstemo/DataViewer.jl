@@ -8,7 +8,6 @@ function livepanel(datadir::String, load_function::Function, file_ext::String;
                         waittime = 0.1,
                         theme = nothing
                         )
-
     datadir = abspath(datadir)
     if theme !== nothing
         set_theme!(theme)
@@ -91,6 +90,8 @@ function satellite_panel(df::DataFrame, title)
     fig = Figure()
     DataInspector(fig)
 
+    colnames = names(df)
+    println(colnames)
     # Set x units
     startunits = ""
     wavelen = "Wavelength (nm)"
@@ -108,8 +109,7 @@ function satellite_panel(df::DataFrame, title)
 
     # Observables and widgets
 
-    colnames = names(df)
-    menu_options = Observable(colnames)
+    menu_options = Observable(["nonlinear", "linear"])
     x = Observable(df[!, 1])
     y = Observable(df[!, 2])
 
@@ -166,28 +166,35 @@ function satellite_panel(df::DataFrame, title)
         if !isdir(save_folder)
             mkdir(save_folder)
         end
-        plotname = title * "_$(to_value(menu.selection)).png"
 
-        save_path = joinpath(save_folder, plotname)
-        savefig = make_savefig(x, y, plotname)
-
+        plotname = title * "_$(to_value(menu.selection))"
+        save_path = abspath(joinpath(save_folder, plotname * ".png"))
+        savefig = make_savefig(x, y, plotname, to_value(ax.xlabel), to_value(ax.ylabel))
         save(save_path, savefig)
         println("Saved figure to ", save_path)
     end
 
-    on(menu.selection) do _
-        i = to_value(menu.i_selected)
-        y[] = df[!, i]
-        ax.ylabel = colnames[i]
+    on(menu.selection) do selected
+
+        if selected == "nonlinear"
+            y[] = df.signal
+            ax.ylabel = "ΔA (arb.)"
+        elseif selected == "linear"
+            y[] = df.off
+            ax.ylabel = "pump on/off intensity (arb.)"
+        end
         autolimits!(ax)
     end
 
     return fig
 end
 
-function make_savefig(x, y, title)
+function make_savefig(x, y, title, xlabel, ylabel)
     fig = Figure()
-    ax = Axis(fig[1, 1], title = title, xticks = LinearTicks(10))
+    ax = Axis(fig[1, 1], title = title, 
+            xlabel = xlabel,
+            ylabel = ylabel,
+            xticks = LinearTicks(10))
     lines!(ax, x, y)
     return fig
 end

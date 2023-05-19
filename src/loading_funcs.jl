@@ -11,7 +11,7 @@ function load_test_data(filepath::String)
 
     loaded = DataFrame(CSV.File(filepath))
 
-    return loaded, title
+    return loaded
 end
 
 """
