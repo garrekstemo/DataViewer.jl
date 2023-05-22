@@ -193,9 +193,7 @@ function satellite_panel(df::DataFrame, title)
         save(save_path, savefig)
         println("Saved figure to ", save_path)
     end
-
-  
-
+    
     return fig
 end
 
