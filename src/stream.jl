@@ -1,16 +1,14 @@
 """
-    dynamicpanel()
+    livepanel(datadir::String, load_function::Function, file_ext::String; waittime = 0.1, theme = nothing)
 
 A panel with a plot that updates when a new data file is found
-in the given directory.
+in the given directory. Satellite panels can be opened via buttons.
 """
 function livepanel(datadir::String, load_function::Function=load_mir, file_ext::String=".lvm";
                         waittime = 0.1,
                         theme = nothing
                         )
-
     datadir = abspath(datadir)
-
     if theme !== nothing
         set_theme!(theme)
     end
@@ -82,7 +80,7 @@ function livepanel(datadir::String, load_function::Function=load_mir, file_ext::
 end
 
 """
-    satellite_panel(df::DataFrame)
+    satellite_panel(df::DataFrame, title)
 
 A satellite panel that appears upon clicking a button on the live panel.
 Not a user-facing function.
@@ -93,54 +91,118 @@ function satellite_panel(df::DataFrame, title)
     DataInspector(fig)
 
     colnames = names(df)
-    menu_options = Observable(colnames)
-    x = Observable(df[!, 1])
-    y = Observable(df[!, 2])
 
-    menu = Menu(fig, options = menu_options, width = 150, tellwidth = true)
-    savebutton = Button(fig, label = "Save as png")
+    # Set x units
+    startunits = ""
+    wavelen = "Wavelength (nm)"
+    wavenum = "Wavenumber (cm⁻¹)"
+    fs = "Pump delay (fs)"
+    ps = "Pump delay (ps)"
     
-    fig[1, 1] = vgrid!(
-        Label(fig, "Choose y-axis", width=nothing),
-        menu,
-        savebutton;
+    if "wavelength" in lowercase.(colnames)
+        startunits = "Wavelength (nm)"
+    elseif "time" in lowercase.(colnames)
+        startunits = "Pump delay (fs)"
+    else
+        startunits = "x"
+    end
+
+    # Observables and widgets
+
+    x = Observable(df[!, 1])
+    y = Observable(df[!, 2])  # automatically plot nonlinear data if it exists
+    savebutton = Button(fig, label = "Save as png")
+    xunits_button = Button(fig, label = startunits)
+    
+    # Draw figure
+
+    fig[1, 1][1, 1] = vgrid!(
+        Label(fig, "Choose data", justification = :center, width=nothing),
+        savebutton,
+        Label(fig, "Change x units", justification = :center, width=nothing),
+        xunits_button;
         tellheight = false
         )
 
-    ax = Axis(fig[1, 2], xlabel = colnames[1], ylabel = colnames[2], 
-                         xticks = LinearTicks(7), yticks = LinearTicks(5))
+    ax = Axis(fig[1, 2],
+        title = title,
+        xlabel = startunits,
+        ylabel = colnames[2], 
+        xticks = LinearTicks(7),
+        yticks = LinearTicks(5)
+        )
+    lineplots = [lines!(ax, x, y, color = :indigo, label = "nonlinear", visible = true)]
 
-    lines!(ax, x, y)
-    ax.title = title
+
+    # Buttons and Interactivity
+
+    if length(colnames) > 2
+        linearbutton = Button(fig[2, 2][1, 1], label = "Linear", tellwidth = false)
+        nonlinearbutton = Button(fig[2, 2][1, 2], label = "Nonlinear", tellwidth = false)
+
+        push!(lineplots, lines!(ax, x, -df.off, color = :deepskyblue3, label = "pump off", visible = false))
+        push!(lineplots, lines!(ax, x, -df.on, color = :crimson, label = "pump on", visible = false))
+        Legend(fig[1, 1][2, 1], ax)
+
+        on(nonlinearbutton.clicks) do _
+                lineplots[1].visible = true
+                lineplots[2].visible = false
+                lineplots[3].visible = false
+                ax.ylabel = "ΔA (arb.)"
+                autolimits!(ax)
+        end
+        on(linearbutton.clicks) do _
+                lineplots[1].visible = false
+                lineplots[2].visible = true
+                lineplots[3].visible = true
+                ax.ylabel = "Pump on/off intensity (arb.)"
+                autolimits!(ax)
+        end
+    end
+
+    on(xunits_button.clicks) do _
+        if to_value(ax.xlabel) == wavelen
+            x[] = 10^7 ./ x[]
+            ax.xlabel = wavenum
+            xunits_button.label = wavenum
+        elseif to_value(ax.xlabel) == wavenum
+            x[] = 10^7 ./ x[]
+            ax.xlabel = wavelen
+            xunits_button.label = wavelen
+        elseif to_value(ax.xlabel) == fs
+            x[] = x[] ./ 1000
+            ax.xlabel = ps
+            xunits_button.label = ps
+        elseif to_value(ax.xlabel) == ps
+            x[] = x[] .* 1000
+            ax.xlabel = fs
+            xunits_button.label = fs
+        end
+        autolimits!(ax)
+    end
 
     on(savebutton.clicks) do _
         save_folder = "./plots/"
         if !isdir(save_folder)
             mkdir(save_folder)
         end
-        plotname = title * "_$(to_value(menu.selection)).png"
 
-        save_path = joinpath(save_folder, plotname)
-        savefig = make_savefig(x, y, plotname)
-
+        plotname = title
+        save_path = abspath(joinpath(save_folder, plotname * ".png"))
+        savefig = make_savefig(x, y, plotname, to_value(ax.xlabel), to_value(ax.ylabel))
         save(save_path, savefig)
         println("Saved figure to ", save_path)
     end
-
-
-    on(menu.selection) do _
-        i = to_value(menu.i_selected)
-        y[] = df[!, i]
-        ax.ylabel = colnames[i]
-        autolimits!(ax)
-    end
-
+    
     return fig
 end
 
-function make_savefig(x, y, title)
+function make_savefig(x, y, title, xlabel, ylabel)
     fig = Figure()
-    ax = Axis(fig[1, 1], title = title, xticks = LinearTicks(10))
+    ax = Axis(fig[1, 1], title = title, 
+            xlabel = xlabel,
+            ylabel = ylabel,
+            xticks = LinearTicks(10))
     lines!(ax, x, y)
     return fig
 end
