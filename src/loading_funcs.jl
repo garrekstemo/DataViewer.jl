@@ -27,7 +27,7 @@ function load_mir(filepath)
     xdata = []
     ydata = []
 
-    df = DataFrame(readlvm(filepath, :MIR))
+    df = readlvm(filepath)
     newdf = DataFrame()
     colnames = propertynames(df)
 
@@ -58,10 +58,10 @@ function load_mir(filepath)
         end
     end
 
-    if :Δ in colnames
-        ydata = df.Δ
-        ylabel = "Δ (arb.)"
-        newdf.Δ = df.Δ
+    if :diff in colnames
+        ydata = df.diff
+        ylabel = "ΔA (arb.)"
+        newdf.diff = df.diff
     end
 
     if :on in colnames
