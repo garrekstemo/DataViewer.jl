@@ -1,4 +1,4 @@
-module DataStream
+module DataViewer
 
 using CSV
 using DataFrames
