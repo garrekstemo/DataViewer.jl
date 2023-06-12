@@ -10,8 +10,8 @@ in the testdata directory in this package.
 function load_test_data(filepath::String)
 
     loaded = DataFrame(CSV.File(filepath))
-
-    return loaded
+    filename = chop(splitdir(filepath)[end], tail = 4)
+    return loaded[!, 1], loaded[!, 2], "x", "y", filename, loaded
 end
 
 """

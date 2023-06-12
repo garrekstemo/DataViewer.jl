@@ -12,6 +12,6 @@ include("loading_funcs.jl")
 include("themes.jl")
 
 export livepanel
-export load_mir
+export load_mir, load_test_data
 
 end # module
