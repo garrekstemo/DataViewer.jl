@@ -6,4 +6,16 @@ Another package of mine, LVM.jl, is a dependency. This reads LabView files (and 
 
 Hopefully this is a nice example for others to build their own GUIs for experimental data collection.
 
+Reproduce this demo with the following:
+
+```
+julia> ]
+pkg> activate scratch
+julia> using DataViewer
+julia> livepanel("testdata/output", load_test_data, "csv")
+```
+Then drage `csv` files from the folder `testdata/device` to `testdata/output`.
+The first argument is the file to watch. The second argument is the file loading function. The third
+argument is the file extension to look for in the watch directory.
+
 ![image](assets/demo_recording.gif)
