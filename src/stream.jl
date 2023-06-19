@@ -190,7 +190,7 @@ function satellite_panel(df::DataFrame, title)
         plotname = title
         save_path = abspath(joinpath(save_folder, plotname * ".png"))
         savefig = make_savefig(x, y, plotname, to_value(ax.xlabel), to_value(ax.ylabel))
-        save(save_path, savefig)
+        save(save_path, savefig, backend=CairoMakie)
         println("Saved figure to ", save_path)
     end
     
