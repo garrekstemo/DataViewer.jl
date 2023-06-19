@@ -6,4 +6,4 @@ Another package of mine, LVM.jl, is a dependency. This reads LabView files (and 
 
 Hopefully this is a nice example for others to build their own GUIs for experimental data collection.
 
-![image](assets/multiple_axes_and_windows_demo.gif)
+![image](assets/demo_recording.gif)
