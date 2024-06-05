@@ -24,7 +24,7 @@ function live_image(datadir::String,
         λs = Observable(vec(readdlm(wavelength)))
         img = Observable(rand(length(to_value(time)), length(to_value(λs))))
     else
-        λs = range(400, 800, length = size(to_value(img), 2))
+        λs = Observable(range(400, 800, length = size(to_value(img), 2)))
     end
     λ_step = @lift($(λs)[2] - $(λs)[1])
     λ_order = @lift(10.0^floor(Int, log10($λ_step)))
