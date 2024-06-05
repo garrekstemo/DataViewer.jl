@@ -1,6 +1,10 @@
 # All data reading and loading functions must take a single argument,
 # the path of the raw data file, and must output... (still deciding the output). 
 
+function get_filename(filepath::String)
+    return chop(splitdir(filepath)[end], tail = 4)
+end
+
 """
     load_test_data(filepath)
 
@@ -71,7 +75,14 @@ function load_mir(filepath)
         newdf.off = df.off
     end
 
-    filename = chop(splitdir(filepath)[end], tail = 4)
+    # filename = chop(splitdir(filepath)[end], tail = 4)
+    filename = get_filename(filepath)
     
     return xdata, ydata, xlabel, ylabel, filename, newdf
+end
+
+function load_image(filepath)
+    filename = get_filename(filepath)
+    raw = readdlm(filepath, skipstart=1)
+    return raw, filename
 end
