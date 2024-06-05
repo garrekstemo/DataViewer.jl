@@ -27,7 +27,6 @@ function live_image(datadir::String,
         λs = Observable(range(400, 800, length = size(to_value(img), 2)))
     end
     λ_step = @lift($(λs)[2] - $(λs)[1])
-    λ_order = @lift(10.0^floor(Int, log10($λ_step)))
     y_line = Observable(700.0)
     cut = Observable(to_value(img)[:, 1])
 
@@ -61,7 +60,7 @@ function live_image(datadir::String,
         yaxis_limits = ax1.yaxis.attributes.limits[]
 
         if y_line[] >= yaxis_limits[1] && y_line[] <= yaxis_limits[2]
-            y_idx = findfirst(isapprox(y_line[], atol = λ_order[]), λs[])
+            y_idx = findfirst(isapprox(y_line[], atol = λ_step[]), λs[])
             cut[] = to_value(img)[:, y_idx]
         end
         autolimits!(ax2)
