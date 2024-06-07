@@ -21,7 +21,7 @@ function live_image(datadir::String,
     img = Observable(rand(200, 100))
     time = Observable(collect(range(0, 100, length = size(to_value(img), 1))))
     if wavelengths_file !== nothing
-        λs = Observable(vec(readdlm(wavelengths_file)))
+        λs = Observable(load_wavelengths(wavelengths_file))
         img[] = rand(length(to_value(time)), length(to_value(λs)))
     else
         num_wavelengths = size(to_value(img), 2)
@@ -43,6 +43,7 @@ function live_image(datadir::String,
         )
     
     ax1 = Axis(fig[1, 1][1, 1], 
+            title = "Line profiler",
             xlabel = "Time (ps)", 
             ylabel = "Wavelength (nm)",
             xticks = LinearTicks(7),
@@ -79,8 +80,8 @@ function live_image(datadir::String,
     end
 
     # Watch for new data
-    found_files = Dict("CCD" => false, "T_" => false)
-    files = Dict("CCD" => "", "T_" => "")
+    found_files = Dict("CCDABS" => false, "T_scale" => false)
+    files = Dict("CCDABS" => "", "T_scale" => "")
 
     while true
         file, event = watch_folder(datadir)
@@ -93,27 +94,31 @@ function live_image(datadir::String,
             
             println("New file: ", file)
         
-            if file[1:3] == "CCD"
-                found_files["CCD"] = true
-                files["CCD"] = joinpath(datadir, file)
-            elseif file[1:2] == "T_"
-                found_files["T_"] = true
-                files["T_"] = joinpath(datadir, file)
+            if file[1:6] == "CCDABS"
+                found_files["CCDABS"] = true
+                files["CCDABS"] = joinpath(datadir, file)
+            elseif file[1:7] == "T_scale"
+                found_files["T_scale"] = true
+                files["T_scale"] = joinpath(datadir, file)
             end
 
-            if found_files["CCD"] && found_files["T_"]
-                img.val, filename = load_image(files["CCD"])
-                time.val = vec(readdlm(files["T_"], skipstart=1))
-                num_ypoints = size(to_value(img), 2)
+            if found_files["CCDABS"] && found_files["T_scale"]
+                new_img, filename = load_image(files["CCDABS"])
+                new_time = vec(readdlm(files["T_scale"], skipstart=1)) ./ 1e3
+                if new_img !== nothing && length(new_time) == size(new_img, 1)
+                    img.val = new_img
+                    time.val = new_time
+                    num_ypoints = size(to_value(img), 2)
 
-                if wavelengths_file !== nothing
-                    λs.val = vec(readdlm(wavelengths_file))
-                else
-                    λs.val = collect(range(0, num_ypoints, length = num_ypoints))
+                    if wavelengths_file !== nothing
+                        λs.val = load_wavelengths(wavelengths_file)
+                    else
+                        λs.val = collect(range(0, num_ypoints, length = num_ypoints))
+                    end
+                    notify(img)
+                    ax1.title = filename
                 end
-                notify(img)
-                ax1.title = filename
-                found_files = Dict("CCD" => false, "T_" => false)
+                found_files = Dict("CCDABS" => false, "T_scale" => false)
             end
             autolimits!(ax1)
             autolimits!(ax2)
@@ -132,8 +137,6 @@ Not a user-facing function.
 function satellite_image(img, time, λs, title)
 
     fig = Figure(size = (600, 900))
-
-    # Observables and widgets
 
     Δy = abs(λs[2] - λs[1])
     y_line = Observable(λs[1])
@@ -174,13 +177,13 @@ function satellite_image(img, time, λs, title)
         end
     end
 
-    on(savebutton.clicks) do _
+    on(save_button.clicks) do _
         save_folder = "./plots/"
         if !isdir(save_folder)
             mkdir(save_folder)
         end
 
-        plotname = title
+        plotname = to_value(title)
         save_path = abspath(joinpath(save_folder, plotname * ".png"))
         # savefig = make_savefig(x, y, plotname, to_value(ax.xlabel), to_value(ax.ylabel))
         save(save_path, fig)

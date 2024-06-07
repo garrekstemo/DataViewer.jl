@@ -83,6 +83,16 @@ end
 
 function load_image(filepath)
     filename = get_filename(filepath)
-    raw = readdlm(filepath, skipstart=1)
-    return raw, filename
+    try
+        raw = readdlm(filepath, skipstart=1)
+        return raw, filename
+    catch
+        println("No data in file: ", filename)
+        return nothing, filename
+    end
+end
+
+function load_wavelengths(filepath)
+    wavelengths = readdlm(filepath, skipstart=1)[:, 1]
+    return wavelengths
 end
