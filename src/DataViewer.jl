@@ -8,12 +8,13 @@ using FileWatching
 using GLMakie
 using LVM
 
-include("stream.jl")
+include("live_plot.jl")
 include("loading_funcs.jl")
 include("themes.jl")
 include("live_image.jl")
+include("common_functions.jl")
 
-export livepanel, live_image
+export live_plot, live_image
 export load_mir, load_test_data
 
 end # module

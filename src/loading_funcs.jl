@@ -25,14 +25,21 @@ Load data for MIR experiments using LVM.jl (:MIR project symbol)
 and apply appropriate axis labels and plot title.
 """
 function load_mir(filepath)
+    filename = get_filename(filepath)
 
     xlabel = ""
     ylabel = ""
     xdata = []
     ydata = []
-
-    df = readlvm(filepath)
+    df = DataFrame()
     newdf = DataFrame()
+    
+    try
+        df = readlvm(filepath)
+    catch
+        println("No data in file: ", filename)
+        return nothing, filename
+    end
     colnames = propertynames(df)
 
     if :wavelength in colnames
@@ -64,7 +71,7 @@ function load_mir(filepath)
 
     if :diff in colnames
         ydata = df.diff
-        ylabel = "ΔA (arb.)"
+        ylabel = "ΔT (arb.)"
         newdf.diff = df.diff
     end
 
@@ -74,9 +81,6 @@ function load_mir(filepath)
     if :off in colnames
         newdf.off = df.off
     end
-
-    # filename = chop(splitdir(filepath)[end], tail = 4)
-    filename = get_filename(filepath)
     
     return xdata, ydata, xlabel, ylabel, filename, newdf
 end

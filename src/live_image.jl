@@ -4,17 +4,13 @@
 A panel with a plot that updates when a new data file is found
 in the given directory. Satellite panels can be opened via buttons.
 """
-function live_image(datadir::String,
-        load_function::Function=load_image,
+function live_image(
+        datadir::String,
         file_ext::String=".lvm";
         wavelengths_file = nothing,
         waittime = 0.1,
-        theme = nothing
     )
     datadir = abspath(datadir)
-    if theme !== nothing
-        set_theme!(theme)
-    end
 
     fig = Figure(size = (600, 900))
 
@@ -137,6 +133,7 @@ Not a user-facing function.
 function satellite_image(img, time, λs, title)
 
     fig = Figure(size = (600, 900))
+    DataInspector(fig)
 
     Δy = abs(λs[2] - λs[1])
     y_line = Observable(λs[1])
