@@ -10,8 +10,10 @@ function live_plot(
         file_ext::String=".lvm";
         waittime = 0.1,
     )
+
     datadir = abspath(datadir)
 
+    GLMakie.activate!()
     fig = Figure()
     sc = display(fig)
     DataInspector(fig)
@@ -33,7 +35,7 @@ function live_plot(
     # Button Actions
 
     on(figbutton.clicks) do _
-        newfig = satellite_panel(to_value(dataframe), ax.title)
+        newfig = satellite_panel(to_value(dataframe), to_value(ax.xlabel), to_value(ax.ylabel), to_value(ax.title))
         display(GLMakie.Screen(), newfig)
     end
 
@@ -57,10 +59,10 @@ function live_plot(
                 y[] = new_y
                 dataframe[] = df
 
-                autolimits!(ax)
                 ax.title = ptitle
                 ax.xlabel = xlabel
                 ax.ylabel = ylabel
+                autolimits!(ax)
             end
         end
     end
@@ -73,33 +75,23 @@ end
 A satellite panel that appears upon clicking a button on the live panel.
 Not a user-facing function.
 """
-function satellite_panel(df::DataFrame, title)
+function satellite_panel(df::DataFrame, xlabel, ylabel, title)
 
     fig = Figure()
     DataInspector(fig)
 
     colnames = names(df)
 
-    # Set x units
-    startunits = ""
+    # x unit labels
     wavelen = "Wavelength (nm)"
     wavenum = "Wavenumber (cm⁻¹)"
     fs = "Pump delay (fs)"
     ps = "Pump delay (ps)"
-    
-    if "wavelength" in lowercase.(colnames)
-        startunits = "Wavelength (nm)"
-    elseif "time" in lowercase.(colnames)
-        startunits = "Pump delay (fs)"
-    else
-        startunits = "x"
-    end
 
     # Observables and widgets
-
     x = Observable(df[!, 1])
     y = Observable(df[!, 2])  # automatically plot difference data if it exists
-    savebutton = Button(fig, label = "Save as png")
+    savebutton = Button(fig, label = "Save as PDF")
     xunits_button = Button(fig, label = "Change x units")
     
     # Draw figure
@@ -112,8 +104,8 @@ function satellite_panel(df::DataFrame, title)
 
     ax = Axis(fig[1, 2],
         title = title,
-        xlabel = startunits,
-        ylabel = colnames[2], 
+        xlabel = xlabel,
+        ylabel = ylabel, 
         xticks = LinearTicks(7),
         yticks = LinearTicks(5)
         )
@@ -123,7 +115,7 @@ function satellite_panel(df::DataFrame, title)
     # Buttons and Interactivity
 
     if length(colnames) > 2
-        transmission_button = Button(fig[2, 2][1, 1], label = "Transmission", tellwidth = false)
+        transmission_button = Button(fig[2, 2][1, 1], label = "Pump on/off", tellwidth = false)
         difference_button = Button(fig[2, 2][1, 2], label = "ΔT", tellwidth = false)
 
         push!(lineplots, lines!(ax, x, -df.off, color = :deepskyblue3, label = "pump off", visible = false))
@@ -134,14 +126,14 @@ function satellite_panel(df::DataFrame, title)
                 lineplots[1].visible = true
                 lineplots[2].visible = false
                 lineplots[3].visible = false
-                ax.ylabel = "ΔA (arb.)"
+                ax.ylabel = "ΔT"
                 autolimits!(ax)
         end
         on(transmission_button.clicks) do _
                 lineplots[1].visible = false
                 lineplots[2].visible = true
                 lineplots[3].visible = true
-                ax.ylabel = "Pump on/off intensity (arb.)"
+                ax.ylabel = "Pump on/off transmission (arb.)"
                 autolimits!(ax)
         end
     end
@@ -170,11 +162,10 @@ function satellite_panel(df::DataFrame, title)
         end
 
         plotname = to_value(title)
-        save_path = abspath(joinpath(save_folder, plotname * ".png"))
-        # savefig = make_savefig(x, y, plotname, to_value(ax.xlabel), to_value(ax.ylabel))
-        save(save_path, fig)
+        save_path = abspath(joinpath(save_folder, plotname * ".pdf"))
+        to_save = make_savefig(x, y, plotname, to_value(ax.xlabel), to_value(ax.ylabel))
+        save(save_path, to_save, backend = CairoMakie)
         println("Saved figure to ", save_path)
-        fig
     end
     
     return fig

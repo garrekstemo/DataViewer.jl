@@ -28,12 +28,13 @@ function load_mir(filepath)
     filename = get_filename(filepath)
 
     xlabel = ""
-    ylabel = ""
+    ylabel = "Transmitted intensity (arb.)"
+    diff_ylabel = "ΔT"
     xdata = []
     ydata = []
     df = DataFrame()
     newdf = DataFrame()
-    
+
     try
         df = readlvm(filepath)
     catch
@@ -48,7 +49,7 @@ function load_mir(filepath)
         newdf.wavelength = df.wavelength
     elseif :time in colnames
         xdata = df.time
-        xlabel = "Time (fs)"
+        xlabel = "Pump delay (fs)"
         newdf.time = df.time
     else
         xdata = range(1, length = length(df[!, 1]))
@@ -57,13 +58,11 @@ function load_mir(filepath)
 
     if :signal in colnames
         ydata = df.signal
-        ylabel = "Signal (arb.)"
         newdf.signal = df.signal
     else
         for name in colnames
             if occursin("CH0_", String(name))
                 ydata = df[!, name]
-                ylabel = String(name)
                 newdf.signal = df[!, name]
             end
         end
@@ -71,7 +70,7 @@ function load_mir(filepath)
 
     if :diff in colnames
         ydata = df.diff
-        ylabel = "ΔT (arb.)"
+        ylabel = diff_ylabel
         newdf.diff = df.diff
     end
 

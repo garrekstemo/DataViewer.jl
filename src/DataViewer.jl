@@ -6,6 +6,7 @@ using Dates
 using DelimitedFiles
 using FileWatching
 using GLMakie
+using CairoMakie
 using LVM
 
 include("live_plot.jl")

@@ -12,6 +12,7 @@ function live_image(
     )
     datadir = abspath(datadir)
 
+    GLMakie.activate!()
     fig = Figure(size = (600, 900))
 
     img = Observable(rand(200, 100))
@@ -181,10 +182,10 @@ function satellite_image(img, time, λs, title)
         end
 
         plotname = to_value(title)
-        save_path = abspath(joinpath(save_folder, plotname * ".png"))
-        # savefig = make_savefig(x, y, plotname, to_value(ax.xlabel), to_value(ax.ylabel))
-        save(save_path, fig)
-        println("Saved figure to ", save_path)
+        save_path = abspath(joinpath(save_folder, plotname * ".pdf"))
+        to_save = make_savefig(x, y, plotname, to_value(ax.xlabel), to_value(ax.ylabel))
+        save(save_path, to_save, backend = CairoMakie)
+        println("Saved figure to ", save_path)  
     end
     
     return fig
