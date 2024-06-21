@@ -91,14 +91,16 @@ function satellite_panel(df::DataFrame, xlabel, ylabel, title)
     # Observables and widgets
     x = Observable(df[!, 1])
     y = Observable(df[!, 2])  # automatically plot difference data if it exists
-    savebutton = Button(fig, label = "Save as PDF")
+    save_button = Button(fig, label = "Save as PDF")
     xunits_button = Button(fig, label = "Change x units")
+    flip_yaxis = Button(fig, label = "Flip y-axis")
     
     # Draw figure
 
     fig[1, 1][1, 1] = vgrid!(
-        savebutton,
-        xunits_button;
+        xunits_button,
+        flip_yaxis,
+        save_button;
         tellheight = false
         )
 
@@ -155,7 +157,12 @@ function satellite_panel(df::DataFrame, xlabel, ylabel, title)
         autolimits!(ax)
     end
 
-    on(savebutton.clicks) do _
+    on(flip_yaxis.clicks) do _
+        y[] = -y[]
+        autolimits!(ax)
+    end
+
+    on(save_button.clicks) do _
         save_folder = "./plots/"
         if !isdir(save_folder)
             mkdir(save_folder)
