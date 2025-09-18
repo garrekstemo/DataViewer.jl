@@ -10,7 +10,7 @@ using CairoMakie
 using LVM
 
 include("live_plot.jl")
-include("loading_funcs.jl")
+include("loading_functions.jl")
 include("live_image.jl")
 include("common_functions.jl")
 
