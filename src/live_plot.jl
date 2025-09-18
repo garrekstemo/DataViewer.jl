@@ -1,5 +1,87 @@
 """
-    live_plot(datadir::String, load_function::Function=load_mir, file_ext::String=".lvm"; waittime = 0.1)
+    setup_live_plot_gui()
+
+Creates and configures the GUI components for live plotting.
+Returns the figure, axis, and observables needed for live updates.
+"""
+function setup_live_plot_gui()
+    GLMakie.activate!()
+    fig = Figure()
+    sc = display(fig)
+    DataInspector(fig)
+
+    x = Observable(rand(1))
+    y = Observable(rand(1))
+    dataframe = Observable(DataFrame(A = rand(1), B = rand(1)))
+
+    ax = Axis(fig[1, 1][1, 1], xticks = LinearTicks(7), yticks = LinearTicks(5))
+    line = lines!(x, y, color = :firebrick4, linewidth = 1.0)
+    livetext = text!(" • Live", color = :red, space = :relative, align = (:left, :bottom))
+
+    figbutton = Button(fig, label = "New Figure")
+    fig[2, 1] = vgrid!(
+        figbutton;
+        tellwidth = false,
+        )
+
+    # Button Actions
+    on(figbutton.clicks) do _
+        newfig = satellite_panel(to_value(dataframe), to_value(ax.xlabel), to_value(ax.ylabel), to_value(ax.title))
+        display(GLMakie.Screen(), newfig)
+    end
+
+    return fig, ax, x, y, dataframe
+end
+
+"""
+    update_plot_data!(x, y, dataframe, ax, new_x, new_y, xlabel, ylabel, ptitle, df)
+
+Updates the plot observables and axis labels with new data.
+"""
+function update_plot_data!(x, y, dataframe, ax, new_x, new_y, xlabel, ylabel, ptitle, df)
+    # Update observables atomically to avoid dimension mismatches
+    x.val = new_x
+    y.val = new_y
+    dataframe.val = df
+
+    # Notify all observables at once
+    notify(x)
+    notify(y)
+    notify(dataframe)
+
+    ax.title = ptitle
+    ax.xlabel = xlabel
+    ax.ylabel = ylabel
+    autolimits!(ax)
+end
+
+"""
+    watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, dataframe, ax)
+
+Watches for new files in the directory and processes them when found.
+"""
+function watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, dataframe, ax)
+    while true
+        (file, event) = watch_folder(datadir)
+        sleep(waittime)
+
+        if endswith(file, file_ext)
+            # Remove leading path separators that some file systems may include
+            file = lstrip(file, ['/', '\\'])
+
+            filepath = joinpath(datadir, file)
+            println("New file: ", file)
+            new_x, new_y, xlabel, ylabel, ptitle, df = load_function(filepath)
+
+            if new_x !== nothing && new_y !== nothing
+                update_plot_data!(x, y, dataframe, ax, new_x, new_y, xlabel, ylabel, ptitle, df)
+            end
+        end
+    end
+end
+
+"""
+    live_plot(datadir::String, load_function::Function=load_mir, file_ext::String=".lvm"; waittime = 1.0)
 
 A panel with a plot that updates when a new data file is found
 in the given directory. Satellite panels can be opened via buttons.
@@ -30,65 +112,11 @@ function live_plot(
 
     datadir = abspath(datadir)
 
-    GLMakie.activate!()
-    fig = Figure()
-    sc = display(fig)
-    DataInspector(fig)
-
-    x = Observable(rand(1))
-    y = Observable(rand(1))
-    dataframe = Observable(DataFrame(A = rand(1), B = rand(1)))
-
-    ax = Axis(fig[1, 1][1, 1], xticks = LinearTicks(7), yticks = LinearTicks(5))
-    line = lines!(x, y, color = :firebrick4, linewidth = 1.0)
-    livetext = text!(" • Live", color = :red, space = :relative, align = (:left, :bottom))
-
-    figbutton = Button(fig, label = "New Figure")
-    fig[2, 1] = vgrid!(
-        figbutton;
-        tellwidth = false,
-        )
-
-    # Button Actions
-
-    on(figbutton.clicks) do _
-        newfig = satellite_panel(to_value(dataframe), to_value(ax.xlabel), to_value(ax.ylabel), to_value(ax.title))
-        display(GLMakie.Screen(), newfig)
-    end
-
+    # Setup GUI components
+    fig, ax, x, y, dataframe = setup_live_plot_gui()
 
     # Watch for new data
-    while true
-        (file, event) = watch_folder(datadir)
-        sleep(waittime)
-        
-        if endswith(file, file_ext)
-            # Remove leading path separators that some file systems may include
-            file = lstrip(file, ['/', '\\'])
-
-            filepath = joinpath(datadir, file)
-            println("New file: ", file)
-            new_x, new_y, xlabel, ylabel, ptitle, df = load_function(filepath)
-
-            if new_x !== nothing && new_y !== nothing
-
-                # Update observables atomically to avoid dimension mismatches
-                x.val = new_x
-                y.val = new_y
-                dataframe.val = df
-
-                # Notify all observables at once
-                notify(x)
-                notify(y)
-                notify(dataframe)
-
-                ax.title = ptitle
-                ax.xlabel = xlabel
-                ax.ylabel = ylabel
-                autolimits!(ax)
-            end
-        end
-    end
+    watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, dataframe, ax)
 
 end
 
