@@ -19,10 +19,15 @@ function setup_live_plot_gui()
     livetext = text!(" • Live", color = :red, space = :relative, align = (:left, :bottom))
 
     figbutton = Button(fig, label = "New Figure")
+    stopbutton = Button(fig, label = "Stop Monitoring")
     fig[2, 1] = vgrid!(
-        figbutton;
+        figbutton,
+        stopbutton;
         tellwidth = false,
         )
+
+    # Create stop signal for graceful shutdown
+    stop_signal = Ref(false)
 
     # Button Actions
     on(figbutton.clicks) do _
@@ -30,7 +35,12 @@ function setup_live_plot_gui()
         display(GLMakie.Screen(), newfig)
     end
 
-    return fig, ax, x, y, dataframe
+    on(stopbutton.clicks) do _
+        stop_signal[] = true
+        println("Stopping file monitoring...")
+    end
+
+    return fig, ax, x, y, dataframe, stop_signal
 end
 
 """
@@ -56,26 +66,69 @@ function update_plot_data!(x, y, dataframe, ax, new_x, new_y, xlabel, ylabel, pt
 end
 
 """
-    watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, dataframe, ax)
+    watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, dataframe, ax, stop_signal)
 
 Watches for new files in the directory and processes them when found.
+Exits gracefully when stop_signal[] becomes true.
+waittime is only used for pausing after errors before retry.
 """
-function watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, dataframe, ax)
-    while true
-        (file, event) = watch_folder(datadir)
-        sleep(waittime)
+function watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, dataframe, ax, stop_signal)
+    # Use a task for non-blocking file watching
+    watch_task = @async begin
+        while !stop_signal[]
+            try
+                (file, event) = watch_folder(datadir)
 
-        if endswith(file, file_ext)
-            # Remove leading path separators that some file systems may include
-            file = lstrip(file, ['/', '\\'])
+                # Check stop signal again after watch returns
+                if stop_signal[]
+                    break
+                end
 
-            filepath = joinpath(datadir, file)
-            println("New file: ", file)
-            new_x, new_y, xlabel, ylabel, ptitle, df = load_function(filepath)
+                if endswith(file, file_ext)
+                    # Remove leading path separators that some file systems may include
+                    file = lstrip(file, ['/', '\\'])
 
-            if new_x !== nothing && new_y !== nothing
-                update_plot_data!(x, y, dataframe, ax, new_x, new_y, xlabel, ylabel, ptitle, df)
+                    filepath = joinpath(datadir, file)
+                    println("New file: ", file)
+
+                    try
+                        new_x, new_y, xlabel, ylabel, ptitle, df = load_function(filepath)
+
+                        if new_x !== nothing && new_y !== nothing
+                            update_plot_data!(x, y, dataframe, ax, new_x, new_y, xlabel, ylabel, ptitle, df)
+                        end
+                    catch e
+                        println("Error loading file $file: ", e)
+                        continue
+                    end
+                end
+            catch e
+                if isa(e, InterruptException) || stop_signal[]
+                    println("Monitoring interrupted")
+                    break
+                else
+                    println("Error watching folder: ", e)
+                    sleep(waittime)  # Brief pause before retrying
+                    continue
+                end
             end
+        end
+        println("File monitoring stopped")
+    end
+
+    # Wait for the task while checking stop signal periodically
+    while !istaskdone(watch_task) && !stop_signal[]
+        sleep(0.1)  # Check every 100ms
+    end
+
+    # Ensure the task is finished
+    if !istaskdone(watch_task)
+        try
+            # Try to interrupt the task gracefully
+            schedule(watch_task, InterruptException(), error=true)
+            wait(watch_task)
+        catch
+            # Task may have already finished
         end
     end
 end
@@ -113,10 +166,22 @@ function live_plot(
     datadir = abspath(datadir)
 
     # Setup GUI components
-    fig, ax, x, y, dataframe = setup_live_plot_gui()
+    fig, ax, x, y, dataframe, stop_signal = setup_live_plot_gui()
 
-    # Watch for new data
-    watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, dataframe, ax)
+    try
+        # Watch for new data
+        watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, dataframe, ax, stop_signal)
+    catch e
+        if isa(e, InterruptException)
+            println("Live plot interrupted by user")
+        else
+            println("Unexpected error in live plot: ", e)
+            rethrow(e)
+        end
+    finally
+        # Cleanup resources
+        println("Monitoring cleanup completed")
+    end
 
 end
 
