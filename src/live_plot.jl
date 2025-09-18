@@ -20,9 +20,11 @@ function setup_live_plot_gui()
 
     figbutton = Button(fig, label = "New Figure")
     stopbutton = Button(fig, label = "Stop Monitoring")
+    startbutton = Button(fig, label = "Start Monitoring")
     fig[2, 1] = hgrid!(
         figbutton,
-        stopbutton;
+        stopbutton,
+        startbutton;
         tellwidth = false,
         )
 
@@ -38,6 +40,15 @@ function setup_live_plot_gui()
     on(stopbutton.clicks) do _
         stop_signal[] = true
         println("Stopping file monitoring...")
+        livetext.text = " • Stopped"
+        livetext.color = :gray
+    end
+
+    on(startbutton.clicks) do _
+        stop_signal[] = false
+        println("Starting file monitoring...")
+        livetext.text = " • Live"
+        livetext.color = :red
     end
 
     return fig, ax, x, y, dataframe, stop_signal
@@ -73,63 +84,72 @@ Exits gracefully when stop_signal[] becomes true.
 waittime is only used for pausing after errors before retry.
 """
 function watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, dataframe, ax, stop_signal)
-    # Use a task for non-blocking file watching
-    watch_task = @async begin
-        while !stop_signal[]
-            try
-                (file, event) = watch_folder(datadir)
+    while true  # Outer loop to handle restarts
+        # Use a task for non-blocking file watching
+        watch_task = @async begin
+            while !stop_signal[]
+                try
+                    (file, event) = watch_folder(datadir)
 
-                # Check stop signal again after watch returns
-                if stop_signal[]
-                    break
-                end
+                    # Check stop signal again after watch returns
+                    if stop_signal[]
+                        break
+                    end
 
-                if endswith(file, file_ext)
-                    # Remove leading path separators that some file systems may include
-                    file = lstrip(file, ['/', '\\'])
+                    if endswith(file, file_ext)
+                        # Remove leading path separators that some file systems may include
+                        file = lstrip(file, ['/', '\\'])
 
-                    filepath = joinpath(datadir, file)
-                    println("New file: ", file)
+                        filepath = joinpath(datadir, file)
+                        println("New file: ", file)
 
-                    try
-                        new_x, new_y, xlabel, ylabel, ptitle, df = load_function(filepath)
+                        try
+                            new_x, new_y, xlabel, ylabel, ptitle, df = load_function(filepath)
 
-                        if new_x !== nothing && new_y !== nothing
-                            update_plot_data!(x, y, dataframe, ax, new_x, new_y, xlabel, ylabel, ptitle, df)
+                            if new_x !== nothing && new_y !== nothing
+                                update_plot_data!(x, y, dataframe, ax, new_x, new_y, xlabel, ylabel, ptitle, df)
+                            end
+                        catch e
+                            println("Error loading file $file: ", e)
+                            continue
                         end
-                    catch e
-                        println("Error loading file $file: ", e)
+                    end
+                catch e
+                    if isa(e, InterruptException) || stop_signal[]
+                        println("Monitoring paused")
+                        break
+                    else
+                        println("Error watching folder: ", e)
+                        sleep(waittime)  # Brief pause before retrying
                         continue
                     end
                 end
-            catch e
-                if isa(e, InterruptException) || stop_signal[]
-                    println("Monitoring interrupted")
-                    break
-                else
-                    println("Error watching folder: ", e)
-                    sleep(waittime)  # Brief pause before retrying
-                    continue
-                end
             end
         end
-        println("File monitoring stopped")
-    end
 
-    # Wait for the task while checking stop signal periodically
-    while !istaskdone(watch_task) && !stop_signal[]
-        sleep(0.1)  # Check every 100ms
-    end
-
-    # Ensure the task is finished
-    if !istaskdone(watch_task)
-        try
-            # Try to interrupt the task gracefully
-            schedule(watch_task, InterruptException(), error=true)
-            wait(watch_task)
-        catch
-            # Task may have already finished
+        # Wait for the task while checking stop signal periodically
+        while !istaskdone(watch_task) && !stop_signal[]
+            sleep(0.1)  # Check every 100ms
         end
+
+        # Ensure the task is finished
+        if !istaskdone(watch_task)
+            try
+                # Try to interrupt the task gracefully
+                schedule(watch_task, InterruptException(), error=true)
+                wait(watch_task)
+            catch
+                # Task may have already finished
+            end
+        end
+
+        # Wait for restart signal
+        while stop_signal[]
+            sleep(0.1)  # Check every 100ms for restart
+        end
+
+        # If we get here, monitoring was restarted
+        println("File monitoring restarted")
     end
 end
 
