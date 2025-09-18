@@ -14,7 +14,7 @@ include("loading_functions.jl")
 include("live_image.jl")
 include("common_functions.jl")
 
-export live_plot, live_image, start_live_plot
+export live_plot, live_image
 export load_mir, load_test_data
 
 end # module

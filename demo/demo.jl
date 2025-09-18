@@ -54,11 +54,13 @@ function demo_live_plot(output_dir=nothing)
     println("5. Click 'Stop Monitoring' button to exit")
     println("6. REPL remains available for running copy_test_file() or run_auto_demo()\n")
 
-    # Start the live plot with CSV loading function in a background task
-    @async live_plot(output_dir, load_test_data, ".csv"; waittime=0.5)
+    # Start the live plot with CSV loading function (async by default)
+    task = live_plot(output_dir, load_test_data, ".csv"; waittime=0.5)
 
     println("✓ Demo started! REPL is now available.")
     println("  Try: copy_test_file(\"sine\") or run_auto_demo()")
+
+    return task  # Return the task so users can manage it if needed
 end
 
 """

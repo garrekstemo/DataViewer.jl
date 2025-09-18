@@ -134,22 +134,39 @@ function watch_and_process_files(datadir, file_ext, load_function, waittime, x, 
 end
 
 """
-    live_plot(datadir::String, load_function::Function=load_mir, file_ext::String=".lvm"; waittime = 1.0)
+    live_plot(datadir::String, load_function::Function=load_mir, file_ext::String=".lvm"; waittime::Float64 = 1.0, async::Bool = true)
 
 A panel with a plot that updates when a new data file is found
 in the given directory. Satellite panels can be opened via buttons.
+
+By default, runs in the background and returns control to REPL immediately.
 
 # Arguments
 - `datadir::String`: Path to directory to monitor for new files
 - `load_function::Function`: Function to load and parse data files (default: load_mir)
 - `file_ext::String`: File extension to watch for (default: ".lvm")
 - `waittime::Float64`: Sleep duration between file checks in seconds (default: 1.0)
+- `async::Bool`: If true (default), runs in background and returns Task; if false, blocks until stopped
+
+# Returns
+- If `async=true` (default): Returns a Task for the background monitoring
+- If `async=false`: Returns nothing (blocks until stopped)
+
+# Examples
+```julia
+# Non-blocking (default) - REPL stays available
+task = live_plot("./data")
+
+# Blocking behavior if needed
+live_plot("./data", async=false)
+```
 """
 function live_plot(
         datadir::String,
         load_function::Function=load_mir,
         file_ext::String=".lvm";
         waittime::Float64 = 1.0,
+        async::Bool = true,
     )
 
     # Parameter validation
@@ -165,22 +182,55 @@ function live_plot(
 
     datadir = abspath(datadir)
 
-    # Setup GUI components
-    fig, ax, x, y, dataframe, stop_signal = setup_live_plot_gui()
+    if async
+        println("✓ Starting live plot in background...")
+        println("  Directory: $datadir")
+        println("  File extension: $file_ext")
 
-    try
-        # Watch for new data
-        watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, dataframe, ax, stop_signal)
-    catch e
-        if isa(e, InterruptException)
-            println("Live plot interrupted by user")
-        else
-            println("Unexpected error in live plot: ", e)
-            rethrow(e)
+        # Use the approach that actually works!
+        task = @async begin
+            # Setup GUI components
+            fig, ax, x, y, dataframe, stop_signal = setup_live_plot_gui()
+
+            try
+                # Watch for new data
+                watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, dataframe, ax, stop_signal)
+            catch e
+                if isa(e, InterruptException)
+                    println("Live plot interrupted by user")
+                else
+                    println("Unexpected error in live plot: ", e)
+                    rethrow(e)
+                end
+            finally
+                # Cleanup resources
+                println("Monitoring cleanup completed")
+            end
         end
-    finally
-        # Cleanup resources
-        println("Monitoring cleanup completed")
+
+        println("  ✓ Live plot started! REPL is now available.")
+        return task
+    else
+        # Blocking behavior
+        # Setup GUI components
+        fig, ax, x, y, dataframe, stop_signal = setup_live_plot_gui()
+
+        try
+            # Watch for new data
+            watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, dataframe, ax, stop_signal)
+        catch e
+            if isa(e, InterruptException)
+                println("Live plot interrupted by user")
+            else
+                println("Unexpected error in live plot: ", e)
+                rethrow(e)
+            end
+        finally
+            # Cleanup resources
+            println("Monitoring cleanup completed")
+        end
+
+        return nothing
     end
 
 end
@@ -292,41 +342,5 @@ function satellite_panel(df::DataFrame, xlabel, ylabel, title)
     end
     
     return fig
-end
-
-"""
-    start_live_plot(datadir::String, load_function::Function=load_mir, file_ext::String=".lvm"; waittime::Float64 = 1.0)
-
-Convenience function that starts live plotting in the background and returns control to REPL immediately.
-This does exactly what the demo does: `@async live_plot(...)`.
-
-# Arguments
-- `datadir::String`: Path to directory to monitor for new files
-- `load_function::Function`: Function to load and parse data files (default: load_mir)
-- `file_ext::String`: File extension to watch for (default: ".lvm")
-- `waittime::Float64`: Sleep duration between file checks in seconds (default: 1.0)
-
-# Returns
-- Task that can be used to monitor the live plot
-
-# Example
-```julia
-# This returns immediately and keeps REPL available
-task = start_live_plot("./data")
-
-# Use the REPL while monitoring runs
-println("REPL is available!")
-```
-"""
-function start_live_plot(datadir::String, load_function::Function=load_mir, file_ext::String=".lvm"; waittime::Float64 = 1.0)
-    println("✓ Starting live plot in background...")
-    println("  Directory: $datadir")
-    println("  File extension: $file_ext")
-
-    # Use the same approach as the demo - this actually works!
-    task = @async live_plot(datadir, load_function, file_ext; waittime=waittime)
-
-    println("  ✓ Live plot started! REPL is now available.")
-    return task
 end
 
