@@ -1,15 +1,32 @@
 """
-    livepanel(datadir::String, load_function::Function, file_ext::String; waittime = 0.1, theme = nothing)
+    live_plot(datadir::String, load_function::Function=load_mir, file_ext::String=".lvm"; waittime = 0.1)
 
 A panel with a plot that updates when a new data file is found
 in the given directory. Satellite panels can be opened via buttons.
+
+# Arguments
+- `datadir::String`: Path to directory to monitor for new files
+- `load_function::Function`: Function to load and parse data files (default: load_mir)
+- `file_ext::String`: File extension to watch for (default: ".lvm")
+- `waittime::Float64`: Sleep duration between file checks in seconds (default: 1.0)
 """
 function live_plot(
         datadir::String,
         load_function::Function=load_mir,
         file_ext::String=".lvm";
-        waittime = 0.1,
+        waittime::Float64 = 1.0,
     )
+
+    # Parameter validation
+    if !isdir(datadir)
+        throw(ArgumentError("Directory does not exist: $datadir"))
+    end
+    if waittime <= 0
+        throw(ArgumentError("waittime must be positive, got: $waittime"))
+    end
+    if !startswith(file_ext, ".")
+        throw(ArgumentError("file_ext must start with '.', got: $file_ext"))
+    end
 
     datadir = abspath(datadir)
 
@@ -46,18 +63,24 @@ function live_plot(
         sleep(waittime)
         
         if endswith(file, file_ext)
-            if findfirst('\\', file) == 1
-                file = file[2:end]
-            end
-            println("New file: ", file)
+            # Remove leading path separators that some file systems may include
+            file = lstrip(file, ['/', '\\'])
 
-            new_x, new_y, xlabel, ylabel, ptitle, df = load_function(joinpath(datadir, file))
+            filepath = joinpath(datadir, file)
+            println("New file: ", file)
+            new_x, new_y, xlabel, ylabel, ptitle, df = load_function(filepath)
 
             if new_x !== nothing && new_y !== nothing
 
+                # Update observables atomically to avoid dimension mismatches
                 x.val = new_x
-                y[] = new_y
-                dataframe[] = df
+                y.val = new_y
+                dataframe.val = df
+
+                # Notify all observables at once
+                notify(x)
+                notify(y)
+                notify(dataframe)
 
                 ax.title = ptitle
                 ax.xlabel = xlabel
