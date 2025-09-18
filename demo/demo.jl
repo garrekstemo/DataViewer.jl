@@ -117,7 +117,18 @@ function demo_batch_copy(output_dir=nothing, delay=2.0)
         project_root = endswith(current_dir, "demo") ? dirname(current_dir) : current_dir
         output_dir = joinpath(project_root, "demo", "output")
     end
-    test_files = ["sine", "gauss", "exponential", "damped_sine", "square"]
+
+    # Get all CSV files from device folder
+    project_root = endswith(pwd(), "demo") ? dirname(pwd()) : pwd()
+    device_dir = joinpath(project_root, "demo", "device")
+
+    if !isdir(device_dir)
+        println("Device directory not found: $device_dir")
+        return
+    end
+
+    csv_files = filter(f -> endswith(f, ".csv"), readdir(device_dir))
+    test_files = [replace(f, ".csv" => "") for f in csv_files]
 
     println("Starting automatic file copying demo...")
     println("Files will be copied every $delay seconds")

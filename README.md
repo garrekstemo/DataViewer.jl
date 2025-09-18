@@ -1,21 +1,46 @@
 # DataViewer.jl
 
-A very simple proof-of-concept GUI that automatically displays new data added to a folder using GLMakie. The intended use case is an experimental device that takes measurements and saves the data to a file. This program will watch a folder using `FileWatching` (part of the standard Julia library) and update `Observable`s for the data and the menu items. The menu is used to select previously saved data.
+A real-time data visualization tool that automatically displays new data files added to a folder using GLMakie. The intended use case is experimental devices that save measurements to files, providing live plotting capabilities for immediate data inspection.
 
-Another package of mine, LVM.jl, is a dependency. This reads LabView files (and also .csv files) particular to my experiment.
+This program watches a folder using `FileWatching` and updates `Observable`s for live data visualization. Features include:
+- Live plotting with automatic updates when new files appear
+- Start/stop monitoring controls
+- Satellite panels for detailed data inspection
+- File selection menus for viewing historical data
+- Non-blocking operation (REPL remains available)
 
-Hopefully this is a nice example for others to build their own GUIs for experimental data collection.
+Another package of mine, LVM.jl, is a dependency for reading LabView files and CSV files specific to experimental setups.
 
-Reproduce this demo with the following:
+## Quick Demo
 
+```julia
+# Load the demo
+include("demo/demo.jl")
+
+# Start live monitoring (non-blocking)
+run_demo()
+
+# Copy test files to see live updates
+copy_test_file("sine")
+copy_test_file("gauss")
+
+# Or run automatic demo
+run_auto_demo()
 ```
-julia> ]
-pkg> activate scratch
-julia> using DataViewer
-julia> livepanel("testdata/output", load_test_data, "csv")
-```
-Then drage `csv` files from the folder `testdata/device` to `testdata/output`.
-The first argument is the file to watch. The second argument is the file loading function. The third
-argument is the file extension to look for in the watch directory.
 
-![image](assets/demo_recording.gif)
+## Basic Usage
+
+```julia
+using DataViewer
+
+# Start live plotting (async by default, REPL stays available)
+task = live_plot("path/to/data/folder")
+
+# For blocking behavior
+live_plot("path/to/data/folder", async=false)
+
+# With custom file type and loading function
+live_plot("path/to/data", load_test_data, ".csv")
+```
+
+![image](assets/demo.gif)
