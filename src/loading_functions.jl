@@ -28,8 +28,8 @@ function load_mir(filepath)
     filename = get_filename(filepath)
 
     xlabel = ""
-    ylabel = "Transmitted intensity (arb.)"
-    diff_ylabel = "ΔT"
+    ylabel = "Transmitted signal"
+    diff_ylabel = "Differential signal (pump on − pump off)"
     xdata = []
     ydata = []
     df = DataFrame()

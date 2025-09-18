@@ -234,7 +234,7 @@ function satellite_panel(df::DataFrame, xlabel, ylabel, title)
 
     if length(colnames) > 2
         transmission_button = Button(fig[2, 2][1, 1], label = "Pump on/off", tellwidth = false)
-        difference_button = Button(fig[2, 2][1, 2], label = "ΔT", tellwidth = false)
+        difference_button = Button(fig[2, 2][1, 2], label = "Differential signal", tellwidth = false)
 
         push!(lineplots, lines!(ax, x, -df.off, color = :deepskyblue3, label = "pump off", visible = false))
         push!(lineplots, lines!(ax, x, -df.on, color = :crimson, label = "pump on", visible = false))
@@ -244,14 +244,14 @@ function satellite_panel(df::DataFrame, xlabel, ylabel, title)
                 lineplots[1].visible = true
                 lineplots[2].visible = false
                 lineplots[3].visible = false
-                ax.ylabel = "ΔT"
+                ax.ylabel = "Differential signal (pump on − pump off)"
                 autolimits!(ax)
         end
         on(transmission_button.clicks) do _
                 lineplots[1].visible = false
                 lineplots[2].visible = true
                 lineplots[3].visible = true
-                ax.ylabel = "Pump on/off transmission (arb.)"
+                ax.ylabel = "Pump on/off transmission"
                 autolimits!(ax)
         end
     end
