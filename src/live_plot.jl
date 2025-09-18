@@ -260,7 +260,7 @@ function satellite_panel(df::DataFrame, xlabel, ylabel, title)
     save_button = Button(fig, label = "Save as PDF")
     xunits_button = Button(fig, label = "Change x units")
     flip_yaxis = Button(fig, label = "Flip y-axis")
-    
+
     # Draw figure
 
     fig[1, 1][1, 1] = vgrid!(
@@ -273,7 +273,7 @@ function satellite_panel(df::DataFrame, xlabel, ylabel, title)
     ax = Axis(fig[1, 2],
         title = title,
         xlabel = xlabel,
-        ylabel = ylabel, 
+        ylabel = ylabel,
         xticks = LinearTicks(7),
         yticks = LinearTicks(5)
         )
@@ -340,7 +340,7 @@ function satellite_panel(df::DataFrame, xlabel, ylabel, title)
         save(save_path, to_save, backend = CairoMakie)
         println("Saved figure to ", save_path)
     end
-    
+
     return fig
 end
 
