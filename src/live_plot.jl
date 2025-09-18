@@ -294,3 +294,39 @@ function satellite_panel(df::DataFrame, xlabel, ylabel, title)
     return fig
 end
 
+"""
+    start_live_plot(datadir::String, load_function::Function=load_mir, file_ext::String=".lvm"; waittime::Float64 = 1.0)
+
+Convenience function that starts live plotting in the background and returns control to REPL immediately.
+This does exactly what the demo does: `@async live_plot(...)`.
+
+# Arguments
+- `datadir::String`: Path to directory to monitor for new files
+- `load_function::Function`: Function to load and parse data files (default: load_mir)
+- `file_ext::String`: File extension to watch for (default: ".lvm")
+- `waittime::Float64`: Sleep duration between file checks in seconds (default: 1.0)
+
+# Returns
+- Task that can be used to monitor the live plot
+
+# Example
+```julia
+# This returns immediately and keeps REPL available
+task = start_live_plot("./data")
+
+# Use the REPL while monitoring runs
+println("REPL is available!")
+```
+"""
+function start_live_plot(datadir::String, load_function::Function=load_mir, file_ext::String=".lvm"; waittime::Float64 = 1.0)
+    println("✓ Starting live plot in background...")
+    println("  Directory: $datadir")
+    println("  File extension: $file_ext")
+
+    # Use the same approach as the demo - this actually works!
+    task = @async live_plot(datadir, load_function, file_ext; waittime=waittime)
+
+    println("  ✓ Live plot started! REPL is now available.")
+    return task
+end
+
