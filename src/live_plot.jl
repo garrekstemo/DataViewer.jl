@@ -20,7 +20,7 @@ function setup_live_plot_gui()
 
     figbutton = Button(fig, label = "New Figure")
     stopbutton = Button(fig, label = "Stop Monitoring")
-    fig[2, 1] = vgrid!(
+    fig[2, 1] = hgrid!(
         figbutton,
         stopbutton;
         tellwidth = false,
