@@ -23,4 +23,171 @@ export apply_theme!, apply_theme_to_axis!
 # Legacy aliases (deprecated)
 export dataviewer_light_theme, dataviewer_light_colors
 
+using PrecompileTools
+
+@setup_workload begin
+    _pcdir = mktempdir()
+
+    _csv_file = joinpath(_pcdir, "pc.csv")
+    open(_csv_file, "w") do io
+        println(io, "x,y")
+        for i in 1:20
+            println(io, "$i,$(sin(Float64(i)))")
+        end
+    end
+
+    _img_file = joinpath(_pcdir, "pc.dat")
+    open(_img_file, "w") do io
+        println(io, "c1\tc2\tc3\tc4\tc5")
+        for i in 1:5
+            println(io, join(Float64.(i:i+4), "\t"))
+        end
+    end
+
+    _wn = collect(range(1900.0, 2100.0, length=201))
+    _y_spec = @. 0.8 * exp(-(_wn - 1990.0)^2 / 50.0) +
+                 1.2 * exp(-(_wn - 2020.0)^2 / 128.0) -
+                 0.6 * exp(-(_wn - 2050.0)^2 / 72.0)
+
+    _lvm_dir = joinpath(pkgdir(DataViewer), "testdata", "MIRpumpprobe")
+    _lvm_file = joinpath(_lvm_dir, "bare_1M_10ps.lvm")
+    _has_lvm = isfile(_lvm_file)
+
+    @compile_workload begin
+        # Data loading
+        load_test_data(_csv_file)
+        load_image(_img_file)
+
+        if _has_lvm
+            load_mir(_lvm_file)
+        end
+
+        # Theme and colors
+        dataviewer_colors(true)
+        dataviewer_colors(false)
+        dataviewer_theme(true)
+        dataviewer_theme(false)
+
+        # Utilities
+        get_filename("/path/to/file.csv")
+        _normdir("/tmp/testdir")
+        _is_spectral_data((x=[1.0, 2.0], y=[3.0, 4.0]), AXIS_LABELS.wavelength)
+        _is_spectral_data((x=[1.0, 2.0], y=[3.0, 4.0]), AXIS_LABELS.time_ps)
+
+        # Peak detection
+        _peaks = QPS.find_peaks(_wn, _y_spec; min_prominence=0.05)
+        QPS.peak_table(_peaks)
+        QPS.find_peaks(_wn, -_y_spec; min_prominence=0.05)
+
+        # Exponential fitting (do_fit! path)
+        _t_kin = collect(range(-1.0, 10.0, length=100))
+        _y_kin = @. 0.5 * exp(-_t_kin / 3.0) * (_t_kin > 0.0)
+        _trace = QPS.TATrace(_t_kin, _y_kin)
+        QPS.find_peak_time(_t_kin, _y_kin)
+        _fit = QPS.fit_exp_decay(_trace; irf=false, t_start=1.0)
+        QPS.predict(_fit, _t_kin[_t_kin .>= 1.0])
+
+        # Makie GUI construction (no display calls)
+        try
+            _colors = dataviewer_colors(true)
+
+            _fig = Figure(size=(650, 500))
+            DataInspector(_fig)
+            _ax = Axis(_fig[1, 1],
+                xlabel="x", ylabel="y", title="test",
+                xticks=LinearTicks(7), yticks=LinearTicks(5))
+            apply_theme_to_axis!(_ax, _colors)
+            _fig.scene.backgroundcolor[] = Makie.to_color(_colors[:background])
+
+            _xo = Observable(collect(1.0:20.0))
+            _yo = Observable(sin.(collect(1.0:20.0)))
+            _yfit = Observable(fill(NaN, 20))
+
+            _l1 = lines!(_ax, _xo, _yo, color=_colors[:data], linewidth=1.5,
+                label="data")
+            _l2 = lines!(_ax, _xo, _yfit, color=_colors[:fit], linewidth=1.5,
+                visible=false)
+            _s1 = scatter!(_ax, _xo, _yo, color=_colors[:warning],
+                marker=:dtriangle, markersize=12, visible=false)
+            _ft = text!(_ax, 0.98, 0.5, text="test", space=:relative,
+                align=(:right, :center), fontsize=14, visible=false)
+            text!(_ax, 0.02, 0.98, text="", space=:relative,
+                align=(:left, :top), fontsize=12, visible=false)
+
+            # Derived observables (@lift path used in satellite_panel)
+            _neg = @lift(-$_yo)
+
+            # to_value (used throughout satellite_panel callbacks)
+            to_value(_xo)
+            to_value(_yo)
+
+            # Makie.update! (used in satellite_panel toggle/fit callbacks)
+            Makie.update!(_l2; visible=true)
+            Makie.update!(_l2; visible=false)
+            Makie.update!(_ft; visible=true)
+            Makie.update!(_ft; visible=false)
+            Makie.update!(_s1; visible=true)
+            Makie.update!(_s1; visible=false)
+
+            # Rich text (peak annotations in satellite_panel)
+            rich("ESA: 2000.0", color=_colors[:warning])
+            rich("GSB: 1990.0", color=_colors[:fit])
+
+            # Menu with styled colors (satellite_panel file history)
+            _bg = Makie.to_color(_colors[:btn_bg])
+            _fg = Makie.to_color(_colors[:foreground])
+            _hover = Makie.RGBAf(_bg.r + 0.25f0*(_fg.r - _bg.r),
+                _bg.g + 0.25f0*(_fg.g - _bg.g),
+                _bg.b + 0.25f0*(_fg.b - _bg.b), 1.0f0)
+            _menu = Menu(_fig, options=["a", "b", "c"], default="a", width=200,
+                textcolor=_fg,
+                cell_color_inactive_even=_bg,
+                cell_color_inactive_odd=_bg,
+                cell_color_hover=_hover,
+                cell_color_active=Makie.to_color(_colors[:accent]),
+                selection_cell_color_inactive=_bg,
+                dropdown_arrow_color=_fg)
+
+            _btn = Button(_fig, label="Test")
+            _btn2 = Button(_fig, label="Test2")
+            _lbl = Label(_fig, "t₀ (ps):", fontsize=14, color=_colors[:foreground])
+            _tbox = Textbox(_fig, stored_string="1.0", width=80,
+                textcolor=_colors[:foreground],
+                boxcolor=_colors[:background],
+                bordercolor=_colors[:foreground])
+
+            # vgrid! (satellite_panel button column)
+            _fig[1, 1] = vgrid!(_menu, _btn, _btn2, _lbl, _tbox;
+                tellheight=false, width=220)
+            # hgrid! (live_plot button row)
+            _fig[2, 1] = hgrid!(_btn; tellwidth=false)
+
+            # axislegend (satellite_panel pump on/off legend)
+            _leg = axislegend(_ax, position=:rb,
+                backgroundcolor=(Makie.to_color(_colors[:background]), 0.8),
+                labelcolor=Makie.to_color(_colors[:foreground]),
+                framecolor=Makie.to_color(_colors[:foreground]))
+
+            autolimits!(_ax)
+
+            # apply_theme! with legend (satellite_panel theme toggle)
+            apply_theme!(_fig, _ax, [(_l1, :data)], [_btn];
+                dark=false, legend=_leg, texts=[(_ft, :foreground)])
+
+            # make_savefig (save button in satellite_panel)
+            make_savefig(collect(1.0:20.0), sin.(collect(1.0:20.0)),
+                "test", "x", "y")
+
+            # Heatmap for live_image
+            _fig2 = Figure(size=(600, 900))
+            _ax2 = Axis(_fig2[1, 1])
+            _hm_data = Observable(rand(10, 10))
+            heatmap!(_ax2, _hm_data)
+            hlines!(_ax2, 5.0, color=:red)
+        catch
+            # Graceful fallback if display initialization fails
+        end
+    end
+end
+
 end # module

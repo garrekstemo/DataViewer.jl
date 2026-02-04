@@ -10,7 +10,11 @@ Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 FileWatching = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 QPS = "ca89dcb4-c50e-4ab8-a889-55cbaf2d2f78"
+
+[compat]
+PrecompileTools = "1"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
