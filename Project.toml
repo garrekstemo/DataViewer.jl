@@ -13,8 +13,7 @@ GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 QPS = "ca89dcb4-c50e-4ab8-a889-55cbaf2d2f78"
 
-[compat]
-PrecompileTools = "1"
+
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
