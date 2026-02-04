@@ -64,6 +64,25 @@ function _is_spectral_data(data, xlabel)
     return xlabel == AXIS_LABELS.wavelength || xlabel == AXIS_LABELS.wavenumber
 end
 
+const _UNIT_CONVERSIONS = Dict(
+    AXIS_LABELS.wavelength    => (x -> 10^7 ./ x, AXIS_LABELS.wavenumber),
+    AXIS_LABELS.wavenumber    => (x -> 10^7 ./ x, AXIS_LABELS.wavelength),
+    AXIS_LABELS.time_fs       => (x -> x ./ 1000, AXIS_LABELS.time_ps),
+    AXIS_LABELS.pump_delay_fs => (x -> x ./ 1000, AXIS_LABELS.pump_delay_ps),
+    AXIS_LABELS.time_ps       => (x -> x .* 1000, AXIS_LABELS.time_fs),
+    AXIS_LABELS.pump_delay_ps => (x -> x .* 1000, AXIS_LABELS.pump_delay_fs),
+)
+
+function _extract_data(data)
+    if data isa QPS.PumpProbeData
+        return QPS.xaxis(data), data.diff[:, 1], true, data.on[:, 1], data.off[:, 1]
+    elseif data isa NamedTuple
+        return data.x, data.y, false, Float64[], Float64[]
+    else
+        error("Unsupported data type: $(typeof(data))")
+    end
+end
+
 function make_savefig(x, y, title, xlabel, ylabel)
     fig = Figure()
     ax = Axis(fig[1, 1], title = title, 

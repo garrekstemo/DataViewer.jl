@@ -129,17 +129,43 @@ Apply theme colors to a single Axis. Internal helper for `apply_theme!`.
 """
 function apply_theme_to_axis!(ax, colors)
     ax.backgroundcolor = colors[:background]
-    ax.xlabelcolor = colors[:foreground]
-    ax.ylabelcolor = colors[:foreground]
-    ax.titlecolor = colors[:foreground]
-    ax.xticklabelcolor = colors[:foreground]
-    ax.yticklabelcolor = colors[:foreground]
-    ax.xtickcolor = colors[:foreground]
-    ax.ytickcolor = colors[:foreground]
-    ax.bottomspinecolor = colors[:foreground]
-    ax.leftspinecolor = colors[:foreground]
-    ax.topspinecolor = colors[:foreground]
-    ax.rightspinecolor = colors[:foreground]
+    for prop in (:xlabelcolor, :ylabelcolor, :titlecolor,
+                 :xticklabelcolor, :yticklabelcolor,
+                 :xtickcolor, :ytickcolor,
+                 :bottomspinecolor, :leftspinecolor,
+                 :topspinecolor, :rightspinecolor)
+        setproperty!(ax, prop, colors[:foreground])
+    end
+end
+
+#==============================================================================#
+# MENU STYLING
+#==============================================================================#
+
+_menu_hover_color(bg, fg, t=0.25f0) =
+    Makie.RGBAf(bg.r + t*(fg.r - bg.r), bg.g + t*(fg.g - bg.g), bg.b + t*(fg.b - bg.b), 1.0f0)
+
+function _style_menu!(menu, colors)
+    bg = Makie.to_color(colors[:btn_bg])
+    fg = Makie.to_color(colors[:foreground])
+    menu.textcolor = fg
+    menu.cell_color_inactive_even = bg
+    menu.cell_color_inactive_odd = bg
+    menu.cell_color_hover = _menu_hover_color(bg, fg)
+    menu.cell_color_active = Makie.to_color(colors[:accent])
+    menu.selection_cell_color_inactive = bg
+    menu.dropdown_arrow_color = fg
+    # Makie Menu doesn't reactively bind selection_cell_color_inactive to its
+    # polygon — poke the poly directly so the color applies immediately.
+    menu.blockscene.plots[1].color = bg
+    # Makie Menu doesn't bind dropdown text to textcolor — fix manually.
+    for child in menu.blockscene.children
+        for plot in child.plots
+            if plot isa Makie.Text
+                plot.color = fg
+            end
+        end
+    end
 end
 
 #==============================================================================#

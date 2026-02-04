@@ -187,52 +187,31 @@ function live_plot(
         println("  Directory: $datadir")
         println("  File extension: $file_ext")
 
-        # Use the approach that actually works!
-        task = @async begin
-            # Setup GUI components
-            fig, ax, x, y, data_container = setup_live_plot_gui(datadir, file_ext, load_function)
-
-            try
-                # Watch for new data
-                watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, data_container, ax)
-            catch e
-                if isa(e, InterruptException)
-                    println("Live plot interrupted by user")
-                else
-                    println("Unexpected error in live plot: ", e)
-                    rethrow(e)
-                end
-            finally
-                # Cleanup resources
-                println("Monitoring cleanup completed")
-            end
-        end
+        task = @async _run_live_plot(datadir, file_ext, load_function, waittime)
 
         println("  Live plot started! REPL is now available.")
         return task
     else
-        # Blocking behavior
-        # Setup GUI components
-        fig, ax, x, y, data_container = setup_live_plot_gui(datadir, file_ext, load_function)
-
-        try
-            # Watch for new data
-            watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, data_container, ax)
-        catch e
-            if isa(e, InterruptException)
-                println("Live plot interrupted by user")
-            else
-                println("Unexpected error in live plot: ", e)
-                rethrow(e)
-            end
-        finally
-            # Cleanup resources
-            println("Monitoring cleanup completed")
-        end
-
+        _run_live_plot(datadir, file_ext, load_function, waittime)
         return nothing
     end
 
+end
+
+function _run_live_plot(datadir, file_ext, load_function, waittime)
+    fig, ax, x, y, data_container = setup_live_plot_gui(datadir, file_ext, load_function)
+    try
+        watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, data_container, ax)
+    catch e
+        if isa(e, InterruptException)
+            println("Live plot interrupted by user")
+        else
+            println("Unexpected error in live plot: ", e)
+            rethrow(e)
+        end
+    finally
+        println("Monitoring cleanup completed")
+    end
 end
 
 """
@@ -256,21 +235,7 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
     wavenum = AXIS_LABELS.wavenumber
 
     # Handle PumpProbeData and NamedTuple
-    if data isa QPS.PumpProbeData
-        x_data = QPS.xaxis(data)
-        y_data = data.diff[:, 1]
-        has_pump_data = true
-        on_data = data.on[:, 1]
-        off_data = data.off[:, 1]
-    elseif data isa NamedTuple
-        x_data = data.x
-        y_data = data.y
-        has_pump_data = false
-        on_data = Float64[]
-        off_data = Float64[]
-    else
-        error("Unsupported data type: $(typeof(data))")
-    end
+    x_data, y_data, has_pump_data, on_data, off_data = _extract_data(data)
 
     # Observables
     x = Observable(x_data)
@@ -300,16 +265,8 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
     default_label = default_idx !== nothing ? available_files[default_idx] : (isempty(available_files) ? "" : available_files[1])
 
     # Create widgets
-    file_menu = Menu(fig, options = available_files, default = default_label, width = 200,
-        textcolor = Makie.to_color(colors[:foreground]),
-        cell_color_inactive_even = Makie.to_color(colors[:btn_bg]),
-        cell_color_inactive_odd = Makie.to_color(colors[:btn_bg]),
-        cell_color_hover = let bg = Makie.to_color(colors[:btn_bg]), fg = Makie.to_color(colors[:foreground]), t = 0.25f0
-            Makie.RGBAf(bg.r + t*(fg.r - bg.r), bg.g + t*(fg.g - bg.g), bg.b + t*(fg.b - bg.b), 1.0f0)
-        end,
-        cell_color_active = Makie.to_color(colors[:accent]),
-        selection_cell_color_inactive = Makie.to_color(colors[:btn_bg]),
-        dropdown_arrow_color = Makie.to_color(colors[:foreground]))
+    file_menu = Menu(fig, options = available_files, default = default_label, width = 200)
+    _style_menu!(file_menu, colors)
     save_button = Button(fig, label = "Save as PDF")
     xunits_button = Button(fig, label = "Change x units")
     themebutton = Button(fig, label = dark_theme ? "Light Mode" : "Dark Mode")
@@ -434,16 +391,7 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
             new_x, new_y, new_xlabel, new_ylabel, new_title, new_data = result
 
             # Extract pump data from loaded result
-            if new_data isa QPS.PumpProbeData
-                new_on = new_data.on[:, 1]
-                new_off = new_data.off[:, 1]
-            elseif new_data isa NamedTuple
-                new_on = Float64[]
-                new_off = Float64[]
-            else
-                new_on = Float64[]
-                new_off = Float64[]
-            end
+            _, _, _, new_on, new_off = _extract_data(new_data)
 
             # Update all observables atomically
             x.val = new_x
@@ -504,33 +452,19 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
     # Button callbacks
     on(xunits_button.clicks) do _
         current_label = to_value(ax.xlabel)
-        if current_label == wavelen
-            x[] = 10^7 ./ x[]
-            ax.xlabel = wavenum
-        elseif current_label == wavenum
-            x[] = 10^7 ./ x[]
-            ax.xlabel = wavelen
-        elseif current_label == AXIS_LABELS.time_fs
-            x[] = x[] ./ 1000
-            ax.xlabel = AXIS_LABELS.time_ps
-        elseif current_label == AXIS_LABELS.pump_delay_fs
-            x[] = x[] ./ 1000
-            ax.xlabel = AXIS_LABELS.pump_delay_ps
-        elseif current_label == AXIS_LABELS.time_ps
-            x[] = x[] .* 1000
-            ax.xlabel = AXIS_LABELS.time_fs
-        elseif current_label == AXIS_LABELS.pump_delay_ps
-            x[] = x[] .* 1000
-            ax.xlabel = AXIS_LABELS.pump_delay_fs
-        end
+        conv = get(_UNIT_CONVERSIONS, current_label, nothing)
+        conv === nothing && return
+        transform, new_label = conv
+        x[] = transform(x[])
+        ax.xlabel = new_label
         # Convert peak marker positions to match new x units
         if esa_scatter.visible[] || gsb_scatter.visible[]
             if current_label == wavelen || current_label == wavenum
                 if !isempty(esa_x[])
-                    esa_x[] = 10^7 ./ esa_x[]
+                    esa_x[] = transform(esa_x[])
                 end
                 if !isempty(gsb_x[])
-                    gsb_x[] = 10^7 ./ gsb_x[]
+                    gsb_x[] = transform(gsb_x[])
                 end
                 peak_text_obs[] = _build_peak_text(esa_x[], gsb_x[])
             end
@@ -597,9 +531,9 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
         y_vals = to_value(y)
 
         # ESA peaks (positive, excited-state absorption)
-        esa_peaks = QPS.find_peaks(x_vals, y_vals; min_prominence=0.05)
+        esa_peaks = QPS.find_peaks(x_vals, y_vals; min_prominence=0.15)
         # GSB dips (negative, ground-state bleach) — negate to find peaks, recover original y
-        gsb_peaks = QPS.find_peaks(x_vals, -y_vals; min_prominence=0.05)
+        gsb_peaks = QPS.find_peaks(x_vals, -y_vals; min_prominence=0.15)
 
         # Update ESA observables
         esa_x[] = [p.position for p in esa_peaks]
@@ -686,26 +620,7 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
         t0_box.textcolor = new_colors[:foreground]
         t0_box.boxcolor = new_colors[:background]
         t0_box.bordercolor = new_colors[:foreground]
-        file_menu.textcolor = Makie.to_color(new_colors[:foreground])
-        file_menu.cell_color_inactive_even = Makie.to_color(new_colors[:btn_bg])
-        file_menu.cell_color_inactive_odd = Makie.to_color(new_colors[:btn_bg])
-        file_menu.cell_color_hover = let bg = Makie.to_color(new_colors[:btn_bg]), fg = Makie.to_color(new_colors[:foreground]), t = 0.25f0
-            Makie.RGBAf(bg.r + t*(fg.r - bg.r), bg.g + t*(fg.g - bg.g), bg.b + t*(fg.b - bg.b), 1.0f0)
-        end
-        file_menu.cell_color_active = Makie.to_color(new_colors[:accent])
-        file_menu.selection_cell_color_inactive = Makie.to_color(new_colors[:btn_bg])
-        # Makie Menu doesn't reactively bind selection_cell_color_inactive to its
-        # polygon — the color only refreshes on hover. Poke the poly directly.
-        file_menu.blockscene.plots[1].color = Makie.to_color(new_colors[:btn_bg])
-        file_menu.dropdown_arrow_color = Makie.to_color(new_colors[:foreground])
-        # Fix dropdown option text color (Makie Menu doesn't bind this to textcolor)
-        for child in file_menu.blockscene.children
-            for plot in child.plots
-                if plot isa Makie.Text
-                    plot.color = Makie.to_color(new_colors[:foreground])
-                end
-            end
-        end
+        _style_menu!(file_menu, new_colors)
     end
 
     return fig

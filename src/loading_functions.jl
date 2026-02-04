@@ -16,7 +16,7 @@ function load_test_data(filepath::String)
     rows = CSV.File(filepath)
     x = [row[1] for row in rows]
     y = [row[2] for row in rows]
-    filename = chop(splitdir(filepath)[end], tail = 4)
+    filename = get_filename(filepath)
 
     # Return a NamedTuple as the data container (replaces DataFrame)
     data = (x=x, y=y)

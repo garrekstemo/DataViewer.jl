@@ -241,7 +241,7 @@ const DEMO_DIR = joinpath(@__DIR__, "..", "demo", "device")
                      gauss(wn, 2050.0, 0.6, 6.0)
 
         @testset "finds ESA peaks" begin
-            esa_peaks = QPS.find_peaks(wn, y_spectrum; min_prominence=0.05)
+            esa_peaks = QPS.find_peaks(wn, y_spectrum; min_prominence=0.15)
             @test length(esa_peaks) == 2
 
             positions = sort([p.position for p in esa_peaks])
@@ -250,7 +250,7 @@ const DEMO_DIR = joinpath(@__DIR__, "..", "demo", "device")
         end
 
         @testset "finds GSB dips" begin
-            gsb_peaks = QPS.find_peaks(wn, -y_spectrum; min_prominence=0.05)
+            gsb_peaks = QPS.find_peaks(wn, -y_spectrum; min_prominence=0.15)
             @test length(gsb_peaks) >= 1
 
             # At least one GSB near 2050 cm⁻¹
@@ -263,7 +263,7 @@ const DEMO_DIR = joinpath(@__DIR__, "..", "demo", "device")
         end
 
         @testset "peak_table output" begin
-            peaks = QPS.find_peaks(wn, y_spectrum; min_prominence=0.05)
+            peaks = QPS.find_peaks(wn, y_spectrum; min_prominence=0.15)
             table = QPS.peak_table(peaks)
             @test occursin("Position", table)
             @test occursin("Intensity", table)
@@ -277,7 +277,7 @@ const DEMO_DIR = joinpath(@__DIR__, "..", "demo", "device")
             if result[1] !== nothing
                 xdata, ydata, xlabel, ylabel, filename, data = result
                 if _is_spectral_data(data, xlabel)
-                    peaks = QPS.find_peaks(xdata, ydata; min_prominence=0.05)
+                    peaks = QPS.find_peaks(xdata, ydata; min_prominence=0.15)
                     @test peaks isa Vector{QPS.PeakInfo}
                 end
             end

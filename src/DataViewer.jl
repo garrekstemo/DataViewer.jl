@@ -75,9 +75,9 @@ using PrecompileTools
         _is_spectral_data((x=[1.0, 2.0], y=[3.0, 4.0]), AXIS_LABELS.time_ps)
 
         # Peak detection
-        _peaks = QPS.find_peaks(_wn, _y_spec; min_prominence=0.05)
+        _peaks = QPS.find_peaks(_wn, _y_spec; min_prominence=0.15)
         QPS.peak_table(_peaks)
-        QPS.find_peaks(_wn, -_y_spec; min_prominence=0.05)
+        QPS.find_peaks(_wn, -_y_spec; min_prominence=0.15)
 
         # Exponential fitting (do_fit! path)
         _t_kin = collect(range(-1.0, 10.0, length=100))
@@ -134,19 +134,8 @@ using PrecompileTools
             rich("GSB: 1990.0", color=_colors[:fit])
 
             # Menu with styled colors (satellite_panel file history)
-            _bg = Makie.to_color(_colors[:btn_bg])
-            _fg = Makie.to_color(_colors[:foreground])
-            _hover = Makie.RGBAf(_bg.r + 0.25f0*(_fg.r - _bg.r),
-                _bg.g + 0.25f0*(_fg.g - _bg.g),
-                _bg.b + 0.25f0*(_fg.b - _bg.b), 1.0f0)
-            _menu = Menu(_fig, options=["a", "b", "c"], default="a", width=200,
-                textcolor=_fg,
-                cell_color_inactive_even=_bg,
-                cell_color_inactive_odd=_bg,
-                cell_color_hover=_hover,
-                cell_color_active=Makie.to_color(_colors[:accent]),
-                selection_cell_color_inactive=_bg,
-                dropdown_arrow_color=_fg)
+            _menu = Menu(_fig, options=["a", "b", "c"], default="a", width=200)
+            _style_menu!(_menu, _colors)
 
             _btn = Button(_fig, label="Test")
             _btn2 = Button(_fig, label="Test2")

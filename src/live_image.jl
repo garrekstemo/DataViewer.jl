@@ -1,3 +1,24 @@
+function _setup_image_axes(fig_pos, time, λs, img, y_line, cut; title="", line_color=:black)
+    ax1 = Axis(fig_pos[1, 1],
+        title = title,
+        xlabel = AXIS_LABELS.time_ps,
+        ylabel = AXIS_LABELS.wavelength,
+        xticks = LinearTicks(7),
+        yticks = LinearTicks(7))
+    heatmap!(time, λs, img)
+    hlines!(y_line, color = :red)
+
+    ax2 = Axis(fig_pos[2, 1],
+        xlabel = AXIS_LABELS.time_ps,
+        ylabel = AXIS_LABELS.intensity,
+        yticklabelspace = 50.0,
+        xticks = LinearTicks(7),
+        yticks = LinearTicks(7))
+    lines!(time, cut, color = line_color)
+
+    return ax1, ax2
+end
+
 """
     livepanel(datadir::String, load_function::Function, file_ext::String; waittime = 0.1, theme = nothing)
 
@@ -38,34 +59,18 @@ function live_image(
         figbutton;
         tellwidth = false,
         )
-    
-    ax1 = Axis(fig[1, 1][1, 1],
-            title = "Line profiler",
-            xlabel = AXIS_LABELS.time_ps,
-            ylabel = AXIS_LABELS.wavelength,
-            xticks = LinearTicks(7),
-            yticks = LinearTicks(7),
-            )
 
-    hm = heatmap!(time, λs, img)
-    hlines!(y_line, color = :red)
-
-    ax2 = Axis(fig[1, 1][2, 1],
-        xlabel = AXIS_LABELS.time_ps,
-        ylabel = AXIS_LABELS.intensity,
-        yticklabelspace = 50.0,
-        xticks = LinearTicks(7),
-        yticks = LinearTicks(7),
-        )
-    line = lines!(time, cut, color = :firebrick3)
+    ax1, ax2 = _setup_image_axes(fig[1, 1], time, λs, img, y_line, cut;
+        title = "Line profiler", line_color = :firebrick3)
     livetext = text!(" • Live", color = :red, space = :relative, align = (:left, :bottom))
 
     # Events
 
     on(events(fig).mouseposition) do mpos
         if is_mouseinside(ax1)
-            y_line[] =  trunc(Int, mouseposition(ax1.scene)[2])
-            y_idx[] = findfirst(isapprox(y_line[], atol = Δy[]), λs[])
+            y_line[] = trunc(Int, mouseposition(ax1.scene)[2])
+            idx = findfirst(isapprox(y_line[], atol = Δy[]), λs[])
+            idx !== nothing && (y_idx[] = idx)
             autolimits!(ax2)
         end
     end
@@ -85,16 +90,14 @@ function live_image(
         sleep(waittime)
 
         if isa(file, String) && file != "." && file != ".." && endswith(file, file_ext)
-            if findfirst('\\', file) == 1
-                file = file[2:end]
-            end
-            
+            file = lstrip(file, ['/', '\\'])
+
             println("New file: ", file)
-        
-            if file[1:6] == "CCDABS"
+
+            if startswith(file, "CCDABS")
                 found_files["CCDABS"] = true
                 files["CCDABS"] = joinpath(datadir, file)
-            elseif file[1:7] == "T_scale"
+            elseif startswith(file, "T_scale")
                 found_files["T_scale"] = true
                 files["T_scale"] = joinpath(datadir, file)
             end
@@ -141,36 +144,19 @@ function satellite_image(img, time, λs, title)
     y_idx = Observable(1)
     cut = @lift(img[:, $y_idx])
     save_button = Button(fig, label = "Save as png")
-    
+
     fig[2, 1] = vgrid!(
         save_button;
         tellwidth = false,
         )
 
-    ax1 = Axis(fig[1, 1][1, 1],
-            title = title,
-            xlabel = AXIS_LABELS.time_ps,
-            ylabel = AXIS_LABELS.wavelength,
-            xticks = LinearTicks(7),
-            yticks = LinearTicks(7),
-            )
-
-    hm = heatmap!(time, λs, img)
-    hlines!(y_line, color = :red)
-
-    ax2 = Axis(fig[1, 1][2, 1],
-        xlabel = AXIS_LABELS.time_ps,
-        ylabel = AXIS_LABELS.intensity,
-        yticklabelspace = 50.0,
-        xticks = LinearTicks(7),
-        yticks = LinearTicks(7),
-        )
-    line = lines!(time, cut)
+    ax1, ax2 = _setup_image_axes(fig[1, 1], time, λs, img, y_line, cut; title = title)
 
     on(events(fig).mouseposition) do mpos
         if is_mouseinside(ax1)
-            y_line[] =  trunc(Int, mouseposition(ax1.scene)[2])
-            y_idx[] = findfirst(isapprox(y_line[], atol = Δy), λs)
+            y_line[] = trunc(Int, mouseposition(ax1.scene)[2])
+            idx = findfirst(isapprox(y_line[], atol = Δy), λs)
+            idx !== nothing && (y_idx[] = idx)
             autolimits!(ax2)
         end
     end
@@ -182,11 +168,11 @@ function satellite_image(img, time, λs, title)
         end
 
         plotname = to_value(title)
-        save_path = abspath(joinpath(save_folder, plotname * ".pdf"))
-        to_save = make_savefig(x, y, plotname, to_value(ax.xlabel), to_value(ax.ylabel))
+        save_path = abspath(joinpath(save_folder, plotname * ".png"))
+        to_save = make_savefig(time, to_value(cut), plotname, AXIS_LABELS.time_ps, AXIS_LABELS.intensity)
         save(save_path, to_save, backend = CairoMakie)
-        println("Saved figure to ", save_path)  
+        println("Saved figure to ", save_path)
     end
-    
+
     return fig
 end
