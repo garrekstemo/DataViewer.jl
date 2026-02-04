@@ -281,6 +281,14 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
     fit_result = Ref{Union{Nothing, QPS.ExpDecayIRFFit}}(nothing)
     fit_t_start = Ref{Float64}(0.0)
 
+    # Peak finder state
+    is_spectral = Ref(_is_spectral_data(data, xlabel))
+    esa_x = Observable(Float64[])
+    esa_y = Observable(Float64[])
+    gsb_x = Observable(Float64[])
+    gsb_y = Observable(Float64[])
+    peak_text_obs = Observable{Any}("")
+
     # Track current theme (inherited from live panel)
     is_dark_theme = Ref(dark_theme)
 
@@ -304,20 +312,20 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
         dropdown_arrow_color = Makie.to_color(colors[:foreground]))
     save_button = Button(fig, label = "Save as PDF")
     xunits_button = Button(fig, label = "Change x units")
-    flip_yaxis = Button(fig, label = "Flip y-axis")
     themebutton = Button(fig, label = dark_theme ? "Light Mode" : "Dark Mode")
-    fitbutton = Button(fig, label = "Fit")
-    t0_label = Label(fig, "t₀ (ps):", fontsize = 14, color = colors[:foreground])
+    fitbutton = Button(fig, label = is_spectral[] ? "Find Peaks" : "Fit")
+    t0_label = Label(fig, "t₀ (ps):", fontsize = 14, color = colors[:foreground],
+        visible = !is_spectral[])
     t0_box = Textbox(fig, stored_string = "1.0", width = 80,
         textcolor = colors[:foreground],
         boxcolor = colors[:background],
-        bordercolor = colors[:foreground])
+        bordercolor = colors[:foreground],
+        height = is_spectral[] ? 0 : Auto())
 
     # Draw figure - button panel on left with fixed width
     fig[1, 1] = vgrid!(
         file_menu,
         xunits_button,
-        flip_yaxis,
         save_button,
         themebutton,
         t0_label,
@@ -345,9 +353,17 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
     fit_text = text!(ax, 0.98, 0.5, text = "", space = :relative, align = (:right, :center),
                      color = colors[:foreground], fontsize = 14, visible = false)
 
+    # Peak finder visualization
+    esa_scatter = scatter!(ax, esa_x, esa_y, color = colors[:warning],
+        marker = :dtriangle, markersize = 12, visible = false)
+    gsb_scatter = scatter!(ax, gsb_x, gsb_y, color = colors[:fit],
+        marker = :utriangle, markersize = 12, visible = false)
+    peak_text = text!(ax, 0.02, 0.98, text = peak_text_obs, space = :relative,
+        align = (:left, :top), fontsize = 12, visible = false)
+
     # Collect elements for theme switching
-    all_buttons = [save_button, xunits_button, flip_yaxis, themebutton, fitbutton]
-    plots = [(diff_line, :diff), (fit_line, :fit)]
+    all_buttons = [save_button, xunits_button, themebutton, fitbutton]
+    plots = [(diff_line, :diff), (fit_line, :fit), (esa_scatter, :warning), (gsb_scatter, :fit)]
     texts = [(fit_text, :foreground)]
     legend = nothing
 
@@ -393,6 +409,9 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
                 Makie.update!(on_line; visible = true)
                 Makie.update!(fit_line; visible = false)
                 Makie.update!(fit_text; visible = false)
+                Makie.update!(esa_scatter; visible = false)
+                Makie.update!(gsb_scatter; visible = false)
+                Makie.update!(peak_text; visible = false)
                 ax.ylabel = AXIS_LABELS.transmission
                 signal_toggle.label = "Show −ΔT"
             end
@@ -443,6 +462,22 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
             Makie.update!(fit_line; visible = false)
             Makie.update!(fit_text; visible = false)
 
+            # Clear peak markers
+            esa_x[] = Float64[]
+            esa_y[] = Float64[]
+            gsb_x[] = Float64[]
+            gsb_y[] = Float64[]
+            peak_text_obs[] = ""
+            Makie.update!(esa_scatter; visible = false)
+            Makie.update!(gsb_scatter; visible = false)
+            Makie.update!(peak_text; visible = false)
+
+            # Detect spectral vs kinetics mode
+            is_spectral[] = _is_spectral_data(new_data, new_xlabel)
+            fitbutton.label = is_spectral[] ? "Find Peaks" : "Fit"
+            t0_label.visible = !is_spectral[]
+            t0_box.height = is_spectral[] ? 0 : Auto()
+
             # Update axis labels and title
             ax.title = new_title
             ax.xlabel = new_xlabel
@@ -488,13 +523,17 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
             x[] = x[] .* 1000
             ax.xlabel = AXIS_LABELS.pump_delay_fs
         end
-        autolimits!(ax)
-    end
-
-    on(flip_yaxis.clicks) do _
-        y[] = -y[]
-        if fit_line.visible[]
-            y_fit[] = -y_fit[]
+        # Convert peak marker positions to match new x units
+        if esa_scatter.visible[] || gsb_scatter.visible[]
+            if current_label == wavelen || current_label == wavenum
+                if !isempty(esa_x[])
+                    esa_x[] = 10^7 ./ esa_x[]
+                end
+                if !isempty(gsb_x[])
+                    gsb_x[] = 10^7 ./ gsb_x[]
+                end
+                peak_text_obs[] = _build_peak_text(esa_x[], gsb_x[])
+            end
         end
         autolimits!(ax)
     end
@@ -535,6 +574,64 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
         return result
     end
 
+    # Format peak position as a label string with appropriate precision
+    _peak_label(pos) = string(round(pos, digits=1))
+
+    # Build colored rich text listing peak positions
+    function _build_peak_text(esa_positions, gsb_positions)
+        c = dataviewer_colors(is_dark_theme[])
+        parts = Union{Makie.RichText, String}[]
+        for (i, pos) in enumerate(esa_positions)
+            i > 1 && push!(parts, "\n")
+            push!(parts, rich("ESA: $(_peak_label(pos))", color=c[:warning]))
+        end
+        for (i, pos) in enumerate(gsb_positions)
+            (!isempty(esa_positions) || i > 1) && push!(parts, "\n")
+            push!(parts, rich("GSB: $(_peak_label(pos))", color=c[:fit]))
+        end
+        isempty(parts) ? "" : rich(parts...)
+    end
+
+    function do_find_peaks!()
+        x_vals = to_value(x)
+        y_vals = to_value(y)
+
+        # ESA peaks (positive, excited-state absorption)
+        esa_peaks = QPS.find_peaks(x_vals, y_vals; min_prominence=0.05)
+        # GSB dips (negative, ground-state bleach) — negate to find peaks, recover original y
+        gsb_peaks = QPS.find_peaks(x_vals, -y_vals; min_prominence=0.05)
+
+        # Update ESA observables
+        esa_x[] = [p.position for p in esa_peaks]
+        esa_y[] = [p.intensity for p in esa_peaks]
+
+        # Update GSB observables (use original negative y values)
+        gsb_x[] = [p.position for p in gsb_peaks]
+        gsb_y[] = [-p.intensity for p in gsb_peaks]
+
+        # Build colored annotation text
+        peak_text_obs[] = _build_peak_text(esa_x[], gsb_x[])
+
+        # Show markers
+        Makie.update!(esa_scatter; visible = length(esa_peaks) > 0)
+        Makie.update!(gsb_scatter; visible = length(gsb_peaks) > 0)
+        Makie.update!(peak_text; visible = true)
+
+        # Print peak table to REPL
+        xlab = to_value(ax.xlabel)
+        if !isempty(esa_peaks)
+            println("ESA peaks ($xlab):")
+            println(QPS.peak_table(esa_peaks))
+        end
+        if !isempty(gsb_peaks)
+            println("GSB peaks ($xlab):")
+            println(QPS.peak_table(gsb_peaks))
+        end
+        if isempty(esa_peaks) && isempty(gsb_peaks)
+            println("No peaks detected")
+        end
+    end
+
     function try_fit!()
         current_xlabel = to_value(ax.xlabel)
         if current_xlabel == wavelen || current_xlabel == wavenum
@@ -551,11 +648,21 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
     end
 
     on(fitbutton.clicks) do _
-        try_fit!()
+        if is_spectral[]
+            try
+                do_find_peaks!()
+            catch e
+                println("Peak finding failed: ", e)
+            end
+        else
+            try_fit!()
+        end
     end
 
     on(t0_box.stored_string) do _
-        try_fit!()
+        if !is_spectral[]
+            try_fit!()
+        end
     end
 
     on(save_button.clicks) do _
@@ -587,6 +694,9 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
         end
         file_menu.cell_color_active = Makie.to_color(new_colors[:accent])
         file_menu.selection_cell_color_inactive = Makie.to_color(new_colors[:btn_bg])
+        # Makie Menu doesn't reactively bind selection_cell_color_inactive to its
+        # polygon — the color only refreshes on hover. Poke the poly directly.
+        file_menu.blockscene.plots[1].color = Makie.to_color(new_colors[:btn_bg])
         file_menu.dropdown_arrow_color = Makie.to_color(new_colors[:foreground])
         # Fix dropdown option text color (Makie Menu doesn't bind this to textcolor)
         for child in file_menu.blockscene.children

@@ -200,6 +200,90 @@ const DEMO_DIR = joinpath(@__DIR__, "..", "demo", "device")
         end
     end
 
+    @testset "_is_spectral_data" begin
+        @testset "PumpProbeData with time axis" begin
+            n = 10
+            ppd_time = QPS.PumpProbeData(
+                collect(1.0:n), zeros(n, 1), zeros(n, 1), zeros(n, 1),
+                "2024-01-01", QPS.time_axis)
+            @test _is_spectral_data(ppd_time, AXIS_LABELS.time_ps) == false
+        end
+
+        @testset "PumpProbeData with wavelength axis" begin
+            n = 10
+            ppd_wl = QPS.PumpProbeData(
+                collect(400.0:10:490.0), zeros(n, 1), zeros(n, 1), zeros(n, 1),
+                "2024-01-01", QPS.wavelength_axis)
+            @test _is_spectral_data(ppd_wl, AXIS_LABELS.wavelength) == true
+        end
+
+        @testset "NamedTuple with xlabel fallback" begin
+            nt = (x=[1.0, 2.0], y=[3.0, 4.0])
+            @test _is_spectral_data(nt, AXIS_LABELS.wavelength) == true
+            @test _is_spectral_data(nt, AXIS_LABELS.wavenumber) == true
+            @test _is_spectral_data(nt, AXIS_LABELS.time_ps) == false
+            @test _is_spectral_data(nt, "x") == false
+        end
+    end
+
+    @testset "peak detection (synthetic spectrum)" begin
+        # Synthetic wavenumber axis (1900-2100 cm⁻¹)
+        wn = collect(range(1900.0, 2100.0, length=401))
+
+        # Helper: Gaussian peak
+        gauss(x, center, amp, sigma) = amp * exp.(-(x .- center).^2 ./ (2 * sigma^2))
+
+        # Build spectrum:
+        # 2 ESA peaks (positive) at 1990 and 2020 cm⁻¹
+        # 1 GSB dip (negative) at 2050 cm⁻¹
+        y_spectrum = gauss(wn, 1990.0, 0.8, 5.0) .+
+                     gauss(wn, 2020.0, 1.2, 8.0) .-
+                     gauss(wn, 2050.0, 0.6, 6.0)
+
+        @testset "finds ESA peaks" begin
+            esa_peaks = QPS.find_peaks(wn, y_spectrum; min_prominence=0.05)
+            @test length(esa_peaks) == 2
+
+            positions = sort([p.position for p in esa_peaks])
+            @test abs(positions[1] - 1990.0) < 2.0
+            @test abs(positions[2] - 2020.0) < 2.0
+        end
+
+        @testset "finds GSB dips" begin
+            gsb_peaks = QPS.find_peaks(wn, -y_spectrum; min_prominence=0.05)
+            @test length(gsb_peaks) >= 1
+
+            # At least one GSB near 2050 cm⁻¹
+            gsb_positions = [p.position for p in gsb_peaks]
+            @test any(abs.(gsb_positions .- 2050.0) .< 2.0)
+
+            # The peak near 2050 cm⁻¹ should be negative in original data
+            gsb_idx = argmin(abs.(gsb_positions .- 2050.0))
+            @test y_spectrum[gsb_peaks[gsb_idx].index] < 0
+        end
+
+        @testset "peak_table output" begin
+            peaks = QPS.find_peaks(wn, y_spectrum; min_prominence=0.05)
+            table = QPS.peak_table(peaks)
+            @test occursin("Position", table)
+            @test occursin("Intensity", table)
+        end
+    end
+
+    @testset "peak detection (real spectral file)" begin
+        spectrum_file = joinpath(TESTDATA_DIR, "MIRpumpprobe", "single_beam_spectrum.lvm")
+        if isfile(spectrum_file)
+            result = load_mir(spectrum_file)
+            if result[1] !== nothing
+                xdata, ydata, xlabel, ylabel, filename, data = result
+                if _is_spectral_data(data, xlabel)
+                    peaks = QPS.find_peaks(xdata, ydata; min_prominence=0.05)
+                    @test peaks isa Vector{QPS.PeakInfo}
+                end
+            end
+        end
+    end
+
     @testset "edge cases" begin
         @testset "nonexistent file" begin
             @test_throws Exception load_test_data("/nonexistent/path/file.csv")

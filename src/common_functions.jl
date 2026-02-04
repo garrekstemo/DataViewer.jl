@@ -50,6 +50,20 @@ function cleanup!(dir::AbstractString)
     println("Removed $n file(s) from $dir — watcher history cleared")
 end
 
+"""
+    _is_spectral_data(data, xlabel)
+
+Check whether loaded data represents a spectral measurement (wavelength/wavenumber)
+rather than kinetics (time). Uses PumpProbeData.axis_type when available,
+falls back to xlabel string matching.
+"""
+function _is_spectral_data(data, xlabel)
+    if data isa QPS.PumpProbeData
+        return data.axis_type == QPS.wavelength_axis
+    end
+    return xlabel == AXIS_LABELS.wavelength || xlabel == AXIS_LABELS.wavenumber
+end
+
 function make_savefig(x, y, title, xlabel, ylabel)
     fig = Figure()
     ax = Axis(fig[1, 1], title = title, 
