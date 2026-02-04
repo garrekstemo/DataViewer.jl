@@ -1,5 +1,5 @@
-# All data reading and loading functions must take a single argument,
-# the path of the raw data file, and must output... (still deciding the output). 
+# Data loading functions for DataViewer
+# Uses QPS.jl for LVM file loading
 
 function get_filename(filepath::String)
     return chop(splitdir(filepath)[end], tail = 4)
@@ -8,80 +8,57 @@ end
 """
     load_test_data(filepath)
 
-Use this function to test with test data 
-in the testdata directory in this package.
+Load CSV test data for demos. Returns tuple compatible with live_plot.
+Returns a simple NamedTuple instead of DataFrame for the data container.
 """
 function load_test_data(filepath::String)
-
-    loaded = DataFrame(CSV.File(filepath))
+    # Read CSV without DataFrames - just get the raw data
+    rows = CSV.File(filepath)
+    x = [row[1] for row in rows]
+    y = [row[2] for row in rows]
     filename = chop(splitdir(filepath)[end], tail = 4)
-    return loaded[!, 1], loaded[!, 2], "x", "y", filename, loaded
+
+    # Return a NamedTuple as the data container (replaces DataFrame)
+    data = (x=x, y=y)
+    return x, y, "x", "y", filename, data
 end
 
 """
-    load_mir(filepath)
+    load_mir(filepath; channel=1)
 
-Load data for MIR experiments using LVM.jl (:MIR project symbol)
-and apply appropriate axis labels and plot title.
+Load MIR pump-probe data using QPS.jl.
+
+Returns: (time, signal, xlabel, ylabel, filename, PumpProbeData)
+
+The PumpProbeData struct contains:
+- `time`: Time axis in ps
+- `on`: Pump-on signal matrix (columns = channels)
+- `off`: Pump-off signal matrix
+- `diff`: Lock-in difference signal matrix
+- `timestamp`: Acquisition timestamp
 """
-function load_mir(filepath)
+function load_mir(filepath; channel::Int=1)
     filename = get_filename(filepath)
 
-    xlabel = ""
-    ylabel = "Transmitted signal"
-    diff_ylabel = "Differential signal (pump on − pump off)"
-    xdata = []
-    ydata = []
-    df = DataFrame()
-    newdf = DataFrame()
-
     try
-        df = readlvm(filepath)
-    catch
-        println("No data in file: ", filename)
-        return nothing, filename
-    end
-    colnames = propertynames(df)
+        data = QPS.load_lvm(filepath)
 
-    if :wavelength in colnames
-        xdata = df.wavelength
-        xlabel = "Wavelength (nm)"
-        newdf.wavelength = df.wavelength
-    elseif :time in colnames
-        xdata = df.time
-        xlabel = "Pump delay (fs)"
-        newdf.time = df.time
-    else
-        xdata = range(1, length = length(df[!, 1]))
-        newdf.x = xdata
-    end
+        # Use difference signal (channel 1 = index 1)
+        xdata = QPS.xaxis(data)
+        ydata = data.diff[:, channel]
 
-    if :signal in colnames
-        ydata = df.signal
-        newdf.signal = df.signal
-    else
-        for name in colnames
-            if occursin("CH0_", String(name))
-                ydata = df[!, name]
-                newdf.signal = df[!, name]
-            end
-        end
-    end
+        # Auto-detect axis type (time vs wavelength)
+        xlabel = QPS.xaxis_label(data)
 
-    if :diff in colnames
-        ydata = df.diff
-        ylabel = diff_ylabel
-        newdf.diff = df.diff
-    end
+        # Detect if this is pump-probe (has on/off data) or single beam
+        has_pump_data = !all(iszero, data.on[:, channel]) || !all(iszero, data.off[:, channel])
+        ylabel = has_pump_data ? AXIS_LABELS.diff : AXIS_LABELS.signal
 
-    if :on in colnames
-        newdf.on = df.on
+        return xdata, ydata, xlabel, ylabel, filename, data
+    catch e
+        println("Error loading file $filename: ", e)
+        return nothing, nothing, "", "", filename, nothing
     end
-    if :off in colnames
-        newdf.off = df.off
-    end
-    
-    return xdata, ydata, xlabel, ylabel, filename, newdf
 end
 
 function load_image(filepath)

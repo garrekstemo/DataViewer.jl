@@ -1,5 +1,5 @@
 using DataViewer
-using CSV, DataFrames
+using CSV
 
 """
     demo_live_plot(output_dir=nothing)

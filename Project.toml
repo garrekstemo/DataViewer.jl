@@ -1,14 +1,19 @@
 name = "DataViewer"
 uuid = "18a20ccb-959e-4048-bd39-62771470f03a"
-authors = ["Garrek Stemo <8449000+garrekstemo@users.noreply.github.com>"]
 version = "0.10.0"
+authors = ["Garrek Stemo <8449000+garrekstemo@users.noreply.github.com>"]
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
-DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 FileWatching = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
-LVM = "76785837-0c5d-45c2-90b8-8e8ea9f9a99d"
+QPS = "ca89dcb4-c50e-4ab8-a889-55cbaf2d2f78"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
