@@ -24,13 +24,9 @@ function setup_live_plot_gui(datadir, file_ext, load_function)
     livetext = text!(" • Live", color = colors[:accent], space = :relative, align = (:left, :bottom))
 
     figbutton = Button(fig, label = "New Figure")
-    stopbutton = Button(fig, label = "Stop Monitoring")
-    startbutton = Button(fig, label = "Start Monitoring")
     themebutton = Button(fig, label = "Light Mode")
     fig[2, 1] = hgrid!(
         figbutton,
-        stopbutton,
-        startbutton,
         themebutton;
         tellwidth = false,
         )
@@ -38,13 +34,10 @@ function setup_live_plot_gui(datadir, file_ext, load_function)
     # Track current theme (true = dark, false = light)
     is_dark_theme = Ref(true)
 
-    # Create stop signal for graceful shutdown
-    stop_signal = Ref(false)
-
     # Collect elements for theme switching
-    all_buttons = [figbutton, stopbutton, startbutton, themebutton]
+    all_buttons = [figbutton, themebutton]
     plots = [(line, :data)]
-    texts = [(livetext, :accent)]  # Will be updated dynamically for warning state
+    texts = [(livetext, :accent)]
 
     # Button Actions
     on(figbutton.clicks) do _
@@ -52,32 +45,13 @@ function setup_live_plot_gui(datadir, file_ext, load_function)
         display(GLMakie.Screen(), newfig)
     end
 
-    on(stopbutton.clicks) do _
-        stop_signal[] = true
-        println("Stopping file monitoring...")
-        livetext.text = " • Stopped"
-        Makie.update!(livetext; color = Makie.to_color(dataviewer_colors(is_dark_theme[])[:warning]))
-    end
-
-    on(startbutton.clicks) do _
-        stop_signal[] = false
-        println("Starting file monitoring...")
-        livetext.text = " • Live"
-        Makie.update!(livetext; color = Makie.to_color(dataviewer_colors(is_dark_theme[])[:accent]))
-    end
-
     on(themebutton.clicks) do _
         is_dark_theme[] = !is_dark_theme[]
-
-        # Update status text color key based on current state
-        status_color = stop_signal[] ? :warning : :accent
-        current_texts = [(livetext, status_color)]
-
-        apply_theme!(fig, ax, plots, all_buttons; dark=is_dark_theme[], texts=current_texts)
+        apply_theme!(fig, ax, plots, all_buttons; dark=is_dark_theme[], texts=texts)
         themebutton.label = is_dark_theme[] ? "Light Mode" : "Dark Mode"
     end
 
-    return fig, ax, x, y, data_container, stop_signal
+    return fig, ax, x, y, data_container
 end
 
 """
@@ -103,94 +77,59 @@ function update_plot_data!(x, y, data_container, ax, new_x, new_y, xlabel, ylabe
 end
 
 """
-    watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, data_container, ax, stop_signal)
+    watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, data_container, ax)
 
 Watches for new files in the directory and processes them when found.
-Exits gracefully when stop_signal[] becomes true.
-waittime is only used for pausing after errors before retry.
+Runs until interrupted.
 """
-function watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, data_container, ax, stop_signal)
+function watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, data_container, ax)
     seen_files = get!(() -> Set{String}(), _watcher_registry, _normdir(datadir))
 
-    while true  # Outer loop to handle restarts
-        # Use a task for non-blocking file watching
-        watch_task = @async begin
-            while !stop_signal[]
+    while true
+        try
+            (file, event) = watch_folder(datadir)
+
+            if endswith(file, file_ext)
+                # Remove leading path separators that some file systems may include
+                file = lstrip(file, ['/', '\\'])
+
+                # Skip if we've already processed this file
+                if file in seen_files
+                    continue
+                end
+
+                filepath = joinpath(datadir, file)
+
+                # Skip if file was deleted before we could process it
+                # (e.g. cleanup! triggers deletion events — don't mark as seen)
+                if !isfile(filepath)
+                    continue
+                end
+                push!(seen_files, file)
+
+                println("New file: ", file)
+
                 try
-                    (file, event) = watch_folder(datadir)
+                    new_x, new_y, xlabel, ylabel, ptitle, df = load_function(filepath)
 
-                    # Check stop signal again after watch returns
-                    if stop_signal[]
-                        break
-                    end
-
-                    if endswith(file, file_ext)
-                        # Remove leading path separators that some file systems may include
-                        file = lstrip(file, ['/', '\\'])
-
-                        # Skip if we've already processed this file
-                        if file in seen_files
-                            continue
-                        end
-
-                        filepath = joinpath(datadir, file)
-
-                        # Skip if file was deleted before we could process it
-                        # (e.g. cleanup! triggers deletion events — don't mark as seen)
-                        if !isfile(filepath)
-                            continue
-                        end
-                        push!(seen_files, file)
-
-                        println("New file: ", file)
-
-                        try
-                            new_x, new_y, xlabel, ylabel, ptitle, df = load_function(filepath)
-
-                            if new_x !== nothing && new_y !== nothing
-                                update_plot_data!(x, y, data_container, ax, new_x, new_y, xlabel, ylabel, ptitle, df)
-                            end
-                        catch e
-                            println("Error loading file $file: ", e)
-                            continue
-                        end
+                    if new_x !== nothing && new_y !== nothing
+                        update_plot_data!(x, y, data_container, ax, new_x, new_y, xlabel, ylabel, ptitle, df)
                     end
                 catch e
-                    if isa(e, InterruptException) || stop_signal[]
-                        println("Monitoring paused")
-                        break
-                    else
-                        println("Error watching folder: ", e)
-                        sleep(waittime)  # Brief pause before retrying
-                        continue
-                    end
+                    println("Error loading file $file: ", e)
+                    continue
                 end
             end
-        end
-
-        # Wait for the task while checking stop signal periodically
-        while !istaskdone(watch_task) && !stop_signal[]
-            sleep(0.1)  # Check every 100ms
-        end
-
-        # Ensure the task is finished
-        if !istaskdone(watch_task)
-            try
-                # Try to interrupt the task gracefully
-                schedule(watch_task, InterruptException(), error=true)
-                wait(watch_task)
-            catch
-                # Task may have already finished
+        catch e
+            if isa(e, InterruptException)
+                println("Monitoring stopped")
+                break
+            else
+                println("Error watching folder: ", e)
+                sleep(waittime)
+                continue
             end
         end
-
-        # Wait for restart signal
-        while stop_signal[]
-            sleep(0.1)  # Check every 100ms for restart
-        end
-
-        # If we get here, monitoring was restarted
-        println("File monitoring restarted")
     end
 end
 
@@ -251,11 +190,11 @@ function live_plot(
         # Use the approach that actually works!
         task = @async begin
             # Setup GUI components
-            fig, ax, x, y, data_container, stop_signal = setup_live_plot_gui(datadir, file_ext, load_function)
+            fig, ax, x, y, data_container = setup_live_plot_gui(datadir, file_ext, load_function)
 
             try
                 # Watch for new data
-                watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, data_container, ax, stop_signal)
+                watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, data_container, ax)
             catch e
                 if isa(e, InterruptException)
                     println("Live plot interrupted by user")
@@ -274,11 +213,11 @@ function live_plot(
     else
         # Blocking behavior
         # Setup GUI components
-        fig, ax, x, y, data_container, stop_signal = setup_live_plot_gui(datadir, file_ext, load_function)
+        fig, ax, x, y, data_container = setup_live_plot_gui(datadir, file_ext, load_function)
 
         try
             # Watch for new data
-            watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, data_container, ax, stop_signal)
+            watch_and_process_files(datadir, file_ext, load_function, waittime, x, y, data_container, ax)
         catch e
             if isa(e, InterruptException)
                 println("Live plot interrupted by user")
