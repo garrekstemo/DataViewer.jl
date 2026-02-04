@@ -39,10 +39,10 @@ function live_image(
         tellwidth = false,
         )
     
-    ax1 = Axis(fig[1, 1][1, 1], 
+    ax1 = Axis(fig[1, 1][1, 1],
             title = "Line profiler",
-            xlabel = "Time (ps)", 
-            ylabel = "Wavelength (nm)",
+            xlabel = AXIS_LABELS.time_ps,
+            ylabel = AXIS_LABELS.wavelength,
             xticks = LinearTicks(7),
             yticks = LinearTicks(7),
             )
@@ -51,8 +51,8 @@ function live_image(
     hlines!(y_line, color = :red)
 
     ax2 = Axis(fig[1, 1][2, 1],
-        xlabel = "Time (ps)",
-        ylabel = "Intensity (Arb.)",
+        xlabel = AXIS_LABELS.time_ps,
+        ylabel = AXIS_LABELS.intensity,
         yticklabelspace = 50.0,
         xticks = LinearTicks(7),
         yticks = LinearTicks(7),
@@ -147,10 +147,10 @@ function satellite_image(img, time, λs, title)
         tellwidth = false,
         )
 
-    ax1 = Axis(fig[1, 1][1, 1], 
+    ax1 = Axis(fig[1, 1][1, 1],
             title = title,
-            xlabel = "Time (ps)",
-            ylabel = "Wavelength (nm)",
+            xlabel = AXIS_LABELS.time_ps,
+            ylabel = AXIS_LABELS.wavelength,
             xticks = LinearTicks(7),
             yticks = LinearTicks(7),
             )
@@ -159,8 +159,8 @@ function satellite_image(img, time, λs, title)
     hlines!(y_line, color = :red)
 
     ax2 = Axis(fig[1, 1][2, 1],
-        xlabel = "Time (ps)",
-        ylabel = "Intensity (Arb.)",
+        xlabel = AXIS_LABELS.time_ps,
+        ylabel = AXIS_LABELS.intensity,
         yticklabelspace = 50.0,
         xticks = LinearTicks(7),
         yticks = LinearTicks(7),
