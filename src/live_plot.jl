@@ -20,8 +20,8 @@ function setup_live_plot_gui(datadir, file_ext, load_function)
     data_container = Observable{Any}(nothing)  # Holds PumpProbeData or NamedTuple
 
     ax = Axis(fig[1, 1], xticks = LinearTicks(7), yticks = LinearTicks(5))
-    line = lines!(x, y, color = colors[:data], linewidth = 1.5)
-    livetext = text!(" • Live", color = colors[:accent], space = :relative, align = (:left, :bottom))
+    line = lines!(x, y, color = Makie.to_color(colors[:data]), linewidth = 1.5)
+    livetext = text!(" • Live", color = Makie.to_color(colors[:accent]), space = :relative, align = (:left, :bottom))
 
     figbutton = Button(fig, label = "New Figure")
     themebutton = Button(fig, label = "Light Mode")
@@ -243,7 +243,7 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
     y_fit = Observable(fill(NaN, length(x_data)))
     on_obs = Observable(on_data)
     off_obs = Observable(off_data)
-    fit_result = Ref{Union{Nothing, QPS.ExpDecayIRFFit}}(nothing)
+    fit_result = Ref{Union{Nothing, QPS.ExpDecayFit}}(nothing)
     fit_t_start = Ref{Float64}(0.0)
 
     # Peak finder state
@@ -305,15 +305,15 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
     apply_theme_to_axis!(ax, colors)
 
     # Plot elements
-    diff_line = lines!(ax, x, y, color = colors[:diff], linewidth = 1.5, label = "ΔT", visible = true)
-    fit_line = lines!(ax, x, y_fit, color = colors[:fit], linewidth = 1.5, visible = false)
+    diff_line = lines!(ax, x, y, color = Makie.to_color(colors[:diff]), linewidth = 1.5, label = "ΔT", visible = true)
+    fit_line = lines!(ax, x, y_fit, color = Makie.to_color(colors[:fit]), linewidth = 1.5, visible = false)
     fit_text = text!(ax, 0.98, 0.5, text = "", space = :relative, align = (:right, :center),
-                     color = colors[:foreground], fontsize = 14, visible = false)
+                     color = Makie.to_color(colors[:foreground]), fontsize = 14, visible = false)
 
     # Peak finder visualization
-    esa_scatter = scatter!(ax, esa_x, esa_y, color = colors[:warning],
+    esa_scatter = scatter!(ax, esa_x, esa_y, color = Makie.to_color(colors[:warning]),
         marker = :dtriangle, markersize = 12, visible = false)
-    gsb_scatter = scatter!(ax, gsb_x, gsb_y, color = colors[:fit],
+    gsb_scatter = scatter!(ax, gsb_x, gsb_y, color = Makie.to_color(colors[:fit]),
         marker = :utriangle, markersize = 12, visible = false)
     peak_text = text!(ax, 0.02, 0.98, text = peak_text_obs, space = :relative,
         align = (:left, :top), fontsize = 12, visible = false)
@@ -339,8 +339,8 @@ function satellite_panel(data, xlabel, ylabel, title, datadir, file_ext, load_fu
         signal_toggle = Button(fig[2, 2], label = "Show pump on/off", tellwidth = false)
         signal_toggle_ref[] = signal_toggle
 
-        off_line = lines!(ax, x, neg_off, color = colors[:pump_off], linewidth = 1.5, label = "pump off", visible = false)
-        on_line = lines!(ax, x, neg_on, color = colors[:pump_on], linewidth = 1.5, label = "pump on", visible = false)
+        off_line = lines!(ax, x, neg_off, color = Makie.to_color(colors[:pump_off]), linewidth = 1.5, label = "pump off", visible = false)
+        on_line = lines!(ax, x, neg_on, color = Makie.to_color(colors[:pump_on]), linewidth = 1.5, label = "pump on", visible = false)
         off_line_ref[] = off_line
         on_line_ref[] = on_line
 

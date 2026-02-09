@@ -6,15 +6,17 @@ using DelimitedFiles
 using FileWatching
 using GLMakie
 using CairoMakie
-import QPS
+import QPSTools as QPS
 
 include("common_functions.jl")  # AXIS_LABELS used by other modules
 include("themes.jl")
 include("loading_functions.jl")
+include("scan_satellite.jl")
+include("live_scan.jl")
 include("live_plot.jl")
 include("live_image.jl")
 
-export live_plot, live_image, cleanup!
+export live_plot, live_image, live_scan, scan_satellite, cleanup!
 export load_mir, load_test_data
 
 # Themes
@@ -173,6 +175,23 @@ using PrecompileTools
             _hm_data = Observable(rand(10, 10))
             heatmap!(_ax2, _hm_data)
             hlines!(_ax2, 5.0, color=:red)
+
+            # live_scan GUI construction
+            _ls_delays = collect(range(-1.0, 10.0, length=50))
+            _ls_signal = Observable(zeros(50))
+            _ls_index = Observable(0)
+            _ls_status = Observable(:idle)
+            _ls_abort = Ref(false)
+            _ls_desc = Observable("")
+            _ls_prog = Observable(0.0)
+            _ls_fig = live_scan(;
+                delays=_ls_delays, signal=_ls_signal, index=_ls_index,
+                status=_ls_status, abort=_ls_abort,
+                description=_ls_desc, progress=_ls_prog)
+
+            # scan_satellite GUI construction
+            _ss_trace = QPS.TATrace(_t_kin, _y_kin)
+            _ss_fig = scan_satellite(_ss_trace; title="precompile", dark_theme=true)
         catch
             # Graceful fallback if display initialization fails
         end

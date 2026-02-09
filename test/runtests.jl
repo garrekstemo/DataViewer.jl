@@ -1,7 +1,7 @@
 using Test
 using CSV
 using DelimitedFiles
-import QPS
+import QPSTools
 
 # Include source files directly to test without GLMakie dependency.
 # This allows headless testing without starting a display.
@@ -231,7 +231,7 @@ const DEMO_DIR = joinpath(@__DIR__, "..", "demo", "device")
         wn = collect(range(1900.0, 2100.0, length=401))
 
         # Helper: Gaussian peak
-        gauss(x, center, amp, sigma) = amp * exp.(-(x .- center).^2 ./ (2 * sigma^2))
+        gauss(x, center, amp, sigma) = amp * exp.(-(x .- center) .^ 2 ./ (2 * sigma^2))
 
         # Build spectrum:
         # 2 ESA peaks (positive) at 1990 and 2020 cm⁻¹

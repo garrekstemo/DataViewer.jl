@@ -11,9 +11,10 @@ DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 FileWatching = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
-QPS = "ca89dcb4-c50e-4ab8-a889-55cbaf2d2f78"
+QPSTools = "91240044-bfa4-4bca-8577-4d123ebe80d7"
 
-
+[sources]
+QPSTools = {path = "/Users/garrek/Documents/projects/QPSTools.jl"}
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
