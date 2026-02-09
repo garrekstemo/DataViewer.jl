@@ -1,4 +1,4 @@
-# Data loading functions for DataViewer
+# Data loading functions for QPSView
 # Uses QPS.jl for LVM file loading
 
 function get_filename(filepath::String)

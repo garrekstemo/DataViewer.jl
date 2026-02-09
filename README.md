@@ -1,4 +1,4 @@
-# DataViewer.jl
+# QPSView.jl
 
 A real-time data visualization tool that automatically displays new data files added to a folder using GLMakie. The intended use case is experimental devices that save measurements to files, providing live plotting capabilities for immediate data inspection.
 
@@ -31,7 +31,7 @@ run_auto_demo()
 ## Basic Usage
 
 ```julia
-using DataViewer
+using QPSView
 
 # Start live plotting (async by default, REPL stays available)
 task = live_plot("path/to/data/folder")

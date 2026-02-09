@@ -1,6 +1,6 @@
-# DataViewer Live Plot Demo
+# QPSView Live Plot Demo
 
-This demo shows the real-time file monitoring and plotting capabilities of DataViewer.jl.
+This demo shows the real-time file monitoring and plotting capabilities of QPSView.jl.
 
 ## Quick Start
 

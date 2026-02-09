@@ -1,4 +1,4 @@
-# DataViewer themes for lab monitor conditions
+# QPSView themes for lab monitor conditions
 # Designed for: low-quality monitors, windowless rooms, fluorescent lighting
 
 #==============================================================================#

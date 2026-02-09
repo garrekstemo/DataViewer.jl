@@ -27,7 +27,7 @@
 
 **Design decision:** Live plot stays minimal (monitoring only). Fitting happens in satellite panel after user snapshots interesting data with "New Fig".
 
-**QPS.jl functions to use (no new fitting code in DataViewer):**
+**QPS.jl functions to use (no new fitting code in QPSView):**
 - `QPS.fit_exp_decay(trace)` → returns `ExpDecayIRFFit` with τ, t₀, σ, R²
 - `QPS.predict(fit, time)` → returns fitted curve
 

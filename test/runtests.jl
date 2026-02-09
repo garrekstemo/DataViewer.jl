@@ -12,7 +12,7 @@ include(joinpath(@__DIR__, "..", "src", "loading_functions.jl"))
 const TESTDATA_DIR = joinpath(@__DIR__, "..", "testdata")
 const DEMO_DIR = joinpath(@__DIR__, "..", "demo", "device")
 
-@testset "DataViewer Tests" begin
+@testset "QPSView Tests" begin
 
     @testset "load_test_data (CSV)" begin
         @testset "loads valid CSV file" begin

@@ -10,7 +10,7 @@
 Display a live scan in progress. The plot grows point-by-point as the scan
 engine updates the Observables.
 
-Accepts individual Observables (not ScanObservables) so DataViewer does not
+Accepts individual Observables (not ScanObservables) so QPSView does not
 depend on QPSDrive. The caller destructures ScanObservables on their side.
 
 # Required Keywords

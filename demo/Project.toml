@@ -1,3 +1,3 @@
 [deps]
-DataViewer = "18a20ccb-959e-4048-bd39-62771470f03a"
+QPSView = "18a20ccb-959e-4048-bd39-62771470f03a"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"

@@ -1,4 +1,4 @@
-using DataViewer
+using QPSView
 using CSV
 
 """
@@ -16,7 +16,7 @@ Drag CSV files from demo/device/ into demo/output/ to see live updates.
 function demo_live_plot(output_dir=nothing)
     # Find project root and set monitoring directory
     if output_dir === nothing
-        # Find the project root (where DataViewer.jl package is)
+        # Find the project root (where QPSView.jl package is)
         current_dir = pwd()
         project_root = current_dir
 
@@ -33,7 +33,7 @@ function demo_live_plot(output_dir=nothing)
         println("Created output directory: $output_dir")
     end
 
-    println("=== DataViewer Live Plot Demo ===")
+    println("=== QPSView Live Plot Demo ===")
     println("1. Drag CSV files from demo/device/ into: $output_dir")
     println("2. Watch the plot update automatically!")
     println("3. Available test files:")

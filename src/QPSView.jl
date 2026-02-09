@@ -1,4 +1,4 @@
-module DataViewer
+module QPSView
 
 using CSV
 using Dates
@@ -51,7 +51,7 @@ using PrecompileTools
                  1.2 * exp(-(_wn - 2020.0)^2 / 128.0) -
                  0.6 * exp(-(_wn - 2050.0)^2 / 72.0)
 
-    _lvm_dir = joinpath(pkgdir(DataViewer), "testdata", "MIRpumpprobe")
+    _lvm_dir = joinpath(pkgdir(QPSView), "testdata", "MIRpumpprobe")
     _lvm_file = joinpath(_lvm_dir, "bare_1M_10ps.lvm")
     _has_lvm = isfile(_lvm_file)
 
