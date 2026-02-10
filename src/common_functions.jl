@@ -13,6 +13,10 @@ const AXIS_LABELS = (
     transmission = "Transmission",
     intensity = "Intensity (Arb.)",
     signal = "Signal",
+    delta_a = "ΔA",
+    # Pixel axes (CCD)
+    pixel_row = "Row (pixel)",
+    pixel_col = "Column (pixel)",
 )
 
 # Normalize directory paths so "output/" and "output" map to the same key.
@@ -85,10 +89,29 @@ end
 
 function make_savefig(x, y, title, xlabel, ylabel)
     fig = Figure()
-    ax = Axis(fig[1, 1], title = title, 
+    ax = Axis(fig[1, 1], title = title,
             xlabel = xlabel,
             ylabel = ylabel,
             xticks = LinearTicks(10))
     lines!(ax, x, y)
+    return fig
+end
+
+function make_savefig_heatmap(img, title;
+        x=nothing, y=nothing,
+        xlabel=AXIS_LABELS.pixel_col,
+        ylabel=AXIS_LABELS.pixel_row,
+        colormap=:RdBu,
+        colorbar_label=AXIS_LABELS.delta_a)
+    max_abs = maximum(abs, img)
+    cr = max_abs > 0 ? (-max_abs, max_abs) : (-1.0, 1.0)
+    fig = Figure()
+    ax = Axis(fig[1, 1], title=title, xlabel=xlabel, ylabel=ylabel)
+    if x !== nothing && y !== nothing
+        hm = heatmap!(ax, x, y, img, colormap=colormap, colorrange=cr)
+    else
+        hm = heatmap!(ax, img, colormap=colormap, colorrange=cr)
+    end
+    Colorbar(fig[1, 2], hm, label=colorbar_label)
     return fig
 end

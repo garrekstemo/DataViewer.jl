@@ -81,7 +81,7 @@ assignment for Blocks (Axis, Button, Legend).
 - `legend`: Optional Legend object (or Vector)
 - `texts`: Optional Vector of `(text_plot, color_key)` pairs
 """
-function apply_theme!(fig, ax, plots, buttons; dark::Bool=true, legend=nothing, texts=[])
+function apply_theme!(fig, ax, plots, buttons; dark::Bool=true, legend=nothing, texts=[], colorbars=[])
     colors = dataviewer_colors(dark)
 
     # Figure background
@@ -109,11 +109,19 @@ function apply_theme!(fig, ax, plots, buttons; dark::Bool=true, legend=nothing, 
         btn.labelcolor[] = Makie.to_color(colors[:btn_fg])
     end
 
+    # Colorbars - direct assignment
+    for cb in colorbars
+        cb.labelcolor = colors[:foreground]
+        cb.ticklabelcolor = colors[:foreground]
+        cb.tickcolor = colors[:foreground]
+    end
+
     # Legend(s) - Observable assignment
     if legend !== nothing
         legends = legend isa Vector ? legend : [legend]
         for leg in legends
-            leg.backgroundcolor[] = (Makie.to_color(colors[:background]), 0.8)
+            bg = Makie.to_color(colors[:background])
+            leg.backgroundcolor[] = Makie.RGBAf(bg.r, bg.g, bg.b, 0.8f0)
             leg.labelcolor[] = Makie.to_color(colors[:foreground])
             leg.framecolor[] = Makie.to_color(colors[:foreground])
         end
@@ -249,12 +257,12 @@ function dataviewer_theme(dark::Bool=true)
             color = colors[:data],
         ),
 
-        # Legend
+        # Legend — use to_color() so Observable is RGBA-typed from the start
         Legend = (
-            backgroundcolor = colors[:background],
-            framecolor = colors[:grid],
-            labelcolor = colors[:foreground],
-            titlecolor = colors[:foreground],
+            backgroundcolor = Makie.RGBAf(Makie.to_color(colors[:background]), 0.8f0),
+            framecolor = Makie.to_color(colors[:grid]),
+            labelcolor = Makie.to_color(colors[:foreground]),
+            titlecolor = Makie.to_color(colors[:foreground]),
             labelsize = 14,
             titlesize = 16,
         ),

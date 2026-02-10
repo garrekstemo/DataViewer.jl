@@ -72,7 +72,6 @@ function load_image(filepath)
     end
 end
 
-function load_wavelengths(filepath)
-    wavelengths = readdlm(filepath, skipstart=1)[:, 1]
-    return wavelengths
+function load_axis_file(filepath)
+    readdlm(filepath, skipstart=1)[:, 1]
 end

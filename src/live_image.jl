@@ -39,7 +39,7 @@ function live_image(
     img = Observable(rand(200, 100))
     time = Observable(collect(range(0, 100, length = size(to_value(img), 1))))
     if wavelengths_file !== nothing
-        λs = Observable(load_wavelengths(wavelengths_file))
+        λs = Observable(load_axis_file(wavelengths_file))
         img[] = rand(length(to_value(time)), length(to_value(λs)))
     else
         num_wavelengths = size(to_value(img), 2)
@@ -111,7 +111,7 @@ function live_image(
                     num_ypoints = size(to_value(img), 2)
 
                     if wavelengths_file !== nothing
-                        λs.val = load_wavelengths(wavelengths_file)
+                        λs.val = load_axis_file(wavelengths_file)
                     else
                         λs.val = collect(range(0, num_ypoints, length = num_ypoints))
                     end

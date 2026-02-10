@@ -1,4 +1,7 @@
 scratch/
+demo/device_ccd/
+demo/output_ccd/
+demo/output/
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
