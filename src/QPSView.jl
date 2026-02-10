@@ -15,8 +15,9 @@ include("scan_satellite.jl")
 include("live_scan.jl")
 include("live_plot.jl")
 include("live_image.jl")
+include("live_ccd.jl")
 
-export live_plot, live_image, live_scan, scan_satellite, cleanup!
+export live_plot, live_image, live_ccd, live_scan, scan_satellite, cleanup!
 export load_mir, load_test_data
 
 # Themes
@@ -175,6 +176,28 @@ using PrecompileTools
             _hm_data = Observable(rand(10, 10))
             heatmap!(_ax2, _hm_data)
             hlines!(_ax2, 5.0, color=:red)
+
+            # CCD heatmap (live_ccd / satellite_ccd) — plain values + Makie.update!
+            _ccd_fig = Figure(size=(800, 900))
+            _ccd_ax = Axis(_ccd_fig[1, 1])
+            _ccd_wl = collect(range(400.0, 700.0, length=10))
+            _ccd_time = collect(range(-2.0, 20.0, length=10))
+            _ccd_img = randn(10, 10) .* 0.01
+            _ccd_hm = heatmap!(_ccd_ax, _ccd_wl, _ccd_time, _ccd_img,
+                colormap=:RdBu, colorrange=(-0.01, 0.01))
+            Colorbar(_ccd_fig[1, 2], _ccd_hm, label=AXIS_LABELS.delta_a)
+            _ccd_vl = vlines!(_ccd_ax, _ccd_wl[1], color=:red)
+            _ccd_cut = [Point2f(_ccd_time[i], _ccd_img[1, i]) for i in eachindex(_ccd_time)]
+            _ccd_ax2 = Axis(_ccd_fig[2, 1])
+            _ccd_cl = lines!(_ccd_ax2, _ccd_cut)
+            # Precompile Makie.update! paths
+            Makie.update!(_ccd_hm, _ccd_wl, _ccd_time, _ccd_img; colorrange=(-0.01, 0.01))
+            Makie.update!(_ccd_vl; arg1=_ccd_wl[5])
+            Makie.update!(_ccd_cl; arg1=_ccd_cut)
+            make_savefig_heatmap(randn(10, 10) .* 0.01, "precompile")
+            make_savefig_heatmap(randn(10, 10) .* 0.01, "precompile";
+                x=collect(1.0:10.0), y=collect(1.0:10.0))
+            _find_wavelength_file(mktempdir())
 
             # live_scan GUI construction
             _ls_delays = collect(range(-1.0, 10.0, length=50))
