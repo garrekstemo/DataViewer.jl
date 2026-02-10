@@ -9,8 +9,6 @@ This program watches a folder using `FileWatching` and updates `Observable`s for
 - File selection menus for viewing historical data
 - Non-blocking operation (REPL remains available)
 
-Another package of mine, LVM.jl, is a dependency for reading LabView files and CSV files specific to experimental setups.
-
 ## Quick Demo
 
 ```julia
@@ -42,5 +40,3 @@ live_plot("path/to/data/folder", async=false)
 # With custom file type and loading function
 live_plot("path/to/data", load_test_data, ".csv")
 ```
-
-![image](assets/demo.gif)
